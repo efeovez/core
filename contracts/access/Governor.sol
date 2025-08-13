@@ -16,7 +16,7 @@ abstract contract Governor {
     /* ================= MODIFIER ================= */
 
     modifier onlyGovernor() {
-        require(msg.sender == governor, "basis.Governor: msg.sender is not the governor");
+        require(msg.sender == governor, "basis.access.Governor: msg.sender is not the governor");
         _;
     }
 
