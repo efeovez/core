@@ -99,10 +99,10 @@ contract Staking is StakingState {
     }
 
     function unstake(uint256 amount) public {
-        require(delegations[msg.sender][msg.sender].amount >= amount, "basis.staking.Staking.undelegate(): amount you wish to undelegate must be less than or equal to the amount you have delegated");
-        require(providers[msg.sender].providerAddress != address(0), "basis.staking.Staking.delegate(): provider not registered");
-        require(delegations[msg.sender][msg.sender].amount > 0, "basis.staking.Staking.undelegate(): you do not have an existing delegation");
-        require(block.timestamp >= delegations[msg.sender][msg.sender].unlockTime, "basis.staking.Staking.undelegate(): your token is locked");
+        require(delegations[msg.sender][msg.sender].amount >= amount, "basis.staking.Staking.unstake(): amount you wish to undelegate must be less than or equal to the amount you have delegated");
+        require(providers[msg.sender].providerAddress != address(0), "basis.staking.Staking.unstake(): provider not registered");
+        require(delegations[msg.sender][msg.sender].amount > 0, "basis.staking.Staking.unstake(): you do not have an existing delegation");
+        require(block.timestamp >= delegations[msg.sender][msg.sender].unlockTime, "basis.staking.Staking.unstake(): your token is locked");
 
         Provider storage currentProvider = providers[msg.sender];
         currentProvider.power -= amount;
