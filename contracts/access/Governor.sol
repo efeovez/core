@@ -31,7 +31,7 @@ abstract contract Governor {
     }
 
     function transferGovernor(address newGovernor) public onlyGovernor {
-        require(newGovernor != address(0), "basis.Governor: zero address given for new governor");
+        require(newGovernor != address(0), "basis.access.Governor: zero address given for new governor");
 
         emit GovernorTransferred(governor, newGovernor);
 
