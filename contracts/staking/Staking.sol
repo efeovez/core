@@ -22,9 +22,9 @@ contract Staking is StakingState {
     /* ================= FUNCTIONS ================= */
 
     function createProvider(string memory description_, uint8 commission_) public {
-        require(bytes(description_).length < 50, "basis.staking.Staking: description_ must be under 50 characters");
-        require(commission_ <= 100, "basis.staking.Staking: commission_ must not exceed 100");
-        require(providers[msg.sender].providerAddress == address(0), "basis.staking.Staking: provider already exists");
+        require(bytes(description_).length < 50, "basis.staking.Staking.createProvider(): description_ must be under 50 characters");
+        require(commission_ <= 100, "basis.staking.Staking.createProvider(): commission_ must not exceed 100");
+        require(providers[msg.sender].providerAddress == address(0), "basis.staking.Staking.createProvider(): provider already exists");
 
         providers[msg.sender] = Provider({
             providerAddress: msg.sender,
@@ -35,9 +35,9 @@ contract Staking is StakingState {
     }
 
     function editProvider(string memory description_, uint8 commission_) public {
-        require(bytes(description_).length < 50, "basis.staking.Staking: description_ must be under 50 characters");
-        require(commission_ <= 100, "basis.staking.Staking: commission_ must not exceed 100");
-        require(msg.sender == providers[msg.sender].providerAddress, "basis.staking.Staking: provider not registered");
+        require(bytes(description_).length < 50, "basis.staking.Staking.editProvider(): description_ must be under 50 characters");
+        require(commission_ <= 100, "basis.staking.Staking.editProvider(): commission_ must not exceed 100");
+        require(msg.sender == providers[msg.sender].providerAddress, "basis.staking.Staking.editProvider(): provider not registered");
 
         Provider storage currentProvider = providers[msg.sender];
 
@@ -46,8 +46,8 @@ contract Staking is StakingState {
     }
 
     function delegate(address provider, uint256 amount) public {
-        require(basis.allowance(msg.sender, address(this)) >= amount, "basis.staking.Staking: approved amount is not sufficient");
-        require(providers[provider].providerAddress != address(0), "basis.staking.Staking: provider not registered");
+        require(basis.allowance(msg.sender, address(this)) >= amount, "basis.staking.Staking.delegate(): approved amount is not sufficient");
+        require(providers[provider].providerAddress != address(0), "basis.staking.Staking.delegate(): provider not registered");
 
         basis.safeTransferFrom(msg.sender, address(this), amount);
 
