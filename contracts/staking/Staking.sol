@@ -12,11 +12,13 @@ contract Staking is StakingState {
     using SafeERC20 for IERC20;
 
     IERC20 public basis;
+    IERC20 public sbasis;
 
     /* ================= CONSTRUCTOR ================= */
 
-    constructor(address basisAddress) {
+    constructor(address basisAddress, address sbasisAddress) {
         basis = IERC20(basisAddress);
+        sbasis = IERC20(sbasisAddress);
     }
 
     /* ================= FUNCTIONS ================= */
@@ -46,11 +48,11 @@ contract Staking is StakingState {
     }
 
     function delegate(address provider, uint256 amount) public {
-        require(basis.allowance(msg.sender, address(this)) >= amount, "basis.staking.Staking.delegate(): approved amount is not sufficient");
+        require(sbasis.allowance(msg.sender, address(this)) >= amount, "basis.staking.Staking.delegate(): approved amount is not sufficient");
         require(providers[provider].providerAddress != address(0), "basis.staking.Staking.delegate(): provider not registered");
         require(amount > 0, "basis.staking.Staking.delegate(): you cannot delegate zero");
 
-        basis.safeTransferFrom(msg.sender, address(this), amount);
+        sbasis.safeTransferFrom(msg.sender, address(this), amount);
 
         Provider storage currentProvider = providers[provider];
         currentProvider.power += amount;
@@ -71,6 +73,39 @@ contract Staking is StakingState {
         currentProvider.power -= amount;
 
         Delegation storage userDelegation = delegations[msg.sender][provider];
+        userDelegation.amount -= amount;
+
+        totalStaked -= amount;
+
+        sbasis.safeTransfer(msg.sender, amount);
+    }
+
+    function stake(uint256 amount) public {
+        require(basis.allowance(msg.sender, address(this)) >= amount, "basis.staking.Staking.stake(): approved amount is not sufficient");
+        require(providers[msg.sender].providerAddress != address(0), "basis.staking.Staking.stake(): provider not registered");
+        require(amount > 0, "basis.staking.Staking.stake(): you cannot stake zero");
+
+        basis.safeTransferFrom(msg.sender, address(this), amount);
+
+        Provider storage currentProvider = providers[msg.sender];
+        currentProvider.power += amount;
+
+        Delegation storage userDelegation = delegations[msg.sender][msg.sender];
+        userDelegation.amount += amount;
+        userDelegation.unlockTime = block.timestamp + LOCK_PERIOD;
+
+        totalStaked += amount;
+    }
+
+    function unstake(uint256 amount) public {
+        require(delegations[msg.sender][msg.sender].amount >= amount, "basis.staking.Staking.undelegate(): amount you wish to undelegate must be less than or equal to the amount you have delegated");
+        require(providers[msg.sender].providerAddress != address(0), "basis.staking.Staking.delegate(): provider not registered");
+        require(delegations[msg.sender][msg.sender].amount > 0, "basis.staking.Staking.undelegate(): you do not have an existing delegation");
+
+        Provider storage currentProvider = providers[msg.sender];
+        currentProvider.power -= amount;
+
+        Delegation storage userDelegation = delegations[msg.sender][msg.sender];
         userDelegation.amount -= amount;
 
         totalStaked -= amount;
