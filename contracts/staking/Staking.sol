@@ -67,8 +67,6 @@ contract Staking is StakingState {
         require(providers[provider].providerAddress != address(0), "basis.staking.Staking.delegate(): provider not registered");
         require(delegations[msg.sender][provider].amount > 0, "basis.staking.Staking.undelegate(): you do not have an existing delegation");
 
-        basis.safeTransferFrom(address(this), msg.sender, amount);
-
         Provider storage currentProvider = providers[provider];
         currentProvider.power -= amount;
 
@@ -76,5 +74,7 @@ contract Staking is StakingState {
         userDelegation.amount -= amount;
 
         totalStaked -= amount;
+
+        basis.safeTransferFrom(address(this), msg.sender, amount);
     }
 }
