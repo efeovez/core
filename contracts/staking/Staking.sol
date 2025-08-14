@@ -59,7 +59,7 @@ contract Staking is StakingState {
 
         Delegation storage userDelegation = delegations[msg.sender][provider];
         userDelegation.amount += amount;
-        userDelegation.unlockTime = block.timestamp + LOCK_PERIOD;
+        userDelegation.unlockTime = block.timestamp + lockPeriod;
 
         totalStakedSbasis += amount;
     }
@@ -93,7 +93,7 @@ contract Staking is StakingState {
 
         Delegation storage userDelegation = delegations[msg.sender][msg.sender];
         userDelegation.amount += amount;
-        userDelegation.unlockTime = block.timestamp + LOCK_PERIOD;
+        userDelegation.unlockTime = block.timestamp + lockPeriod;
 
         totalStakedBasis += amount;
     }

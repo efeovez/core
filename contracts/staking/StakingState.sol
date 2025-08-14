@@ -23,7 +23,7 @@ contract StakingState {
 
     mapping(address => mapping(address => Delegation)) public delegations;
 
-    uint256 public constant LOCK_PERIOD = 21 days;
+    uint256 public lockPeriod = 21 days;
 
     uint256 public totalStakedSbasis;
 
