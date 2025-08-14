@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 contract StakingState {
 
-    /* ================= STRUCT ================= */
+    /* ================= STRUCTS ================= */
 
     struct Provider {
         address providerAddress;
@@ -12,9 +12,18 @@ contract StakingState {
         uint256 power;
     }
 
+    struct Delegation {
+    uint256 amount;
+    uint256 unlockTime;
+    }
+
     /* ================= STATE VARIABLES ================= */
 
     mapping(address => Provider) public providers;
+
+    mapping(address => mapping(address => Delegation)) public delegations;
+
+    uint256 public constant LOCK_PERIOD = 21 days;
 
     uint256 public totalStaked;
 }
