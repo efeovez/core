@@ -61,7 +61,7 @@ contract Staking is StakingState {
         userDelegation.amount += amount;
         userDelegation.unlockTime = block.timestamp + LOCK_PERIOD;
 
-        totalStaked += amount;
+        totalStakedSbasis += amount;
     }
 
     function undelegate(address provider, uint256 amount) public {
@@ -76,7 +76,7 @@ contract Staking is StakingState {
         Delegation storage userDelegation = delegations[msg.sender][provider];
         userDelegation.amount -= amount;
 
-        totalStaked -= amount;
+        totalStakedSbasis -= amount;
 
         sbasis.safeTransfer(msg.sender, amount);
     }
@@ -95,7 +95,7 @@ contract Staking is StakingState {
         userDelegation.amount += amount;
         userDelegation.unlockTime = block.timestamp + LOCK_PERIOD;
 
-        totalStaked += amount;
+        totalStakedBasis += amount;
     }
 
     function unstake(uint256 amount) public {
@@ -110,7 +110,7 @@ contract Staking is StakingState {
         Delegation storage userDelegation = delegations[msg.sender][msg.sender];
         userDelegation.amount -= amount;
 
-        totalStaked -= amount;
+        totalStakedBasis -= amount;
 
         basis.safeTransfer(msg.sender, amount);
     }

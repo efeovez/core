@@ -25,5 +25,7 @@ contract StakingState {
 
     uint256 public constant LOCK_PERIOD = 21 days;
 
-    uint256 public totalStaked;
+    uint256 public totalStakedSbasis;
+
+    uint256 public totalStakedBasis;
 }
