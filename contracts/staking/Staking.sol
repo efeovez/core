@@ -57,5 +57,22 @@ contract Staking is StakingState {
         Delegation storage userDelegation = delegations[msg.sender][provider];
         userDelegation.amount += amount;
         userDelegation.unlockTime = block.timestamp + LOCK_PERIOD;
+
+        totalStaked += amount;
+    }
+
+    function undelegate(address provider, uint256 amount) public {
+        require(delegations[msg.sender][provider].amount >= amount, "basis.staking.Staking.undelegate(): amount you wish to undelegate must be less than or equal to the amount you have delegated");
+        require(providers[provider].providerAddress != address(0), "basis.staking.Staking.delegate(): provider not registered");
+
+        basis.safeTransferFrom(address(this), msg.sender, amount);
+
+        Provider storage currentProvider = providers[provider];
+        currentProvider.power -= amount;
+
+        Delegation storage userDelegation = delegations[msg.sender][provider];
+        userDelegation.amount -= amount;
+
+        totalStaked -= amount;
     }
 }
