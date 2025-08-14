@@ -48,6 +48,7 @@ contract Staking is StakingState {
     function delegate(address provider, uint256 amount) public {
         require(basis.allowance(msg.sender, address(this)) >= amount, "basis.staking.Staking.delegate(): approved amount is not sufficient");
         require(providers[provider].providerAddress != address(0), "basis.staking.Staking.delegate(): provider not registered");
+        require(amount > 0, "basis.staking.Staking.delegate(): you cannot delegate zero");
 
         basis.safeTransferFrom(msg.sender, address(this), amount);
 
@@ -64,6 +65,7 @@ contract Staking is StakingState {
     function undelegate(address provider, uint256 amount) public {
         require(delegations[msg.sender][provider].amount >= amount, "basis.staking.Staking.undelegate(): amount you wish to undelegate must be less than or equal to the amount you have delegated");
         require(providers[provider].providerAddress != address(0), "basis.staking.Staking.delegate(): provider not registered");
+        require(delegations[msg.sender][provider].amount > 0, "basis.staking.Staking.undelegate(): you do not have an existing delegation");
 
         basis.safeTransferFrom(address(this), msg.sender, amount);
 
