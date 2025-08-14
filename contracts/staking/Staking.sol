@@ -75,6 +75,6 @@ contract Staking is StakingState {
 
         totalStaked -= amount;
 
-        basis.safeTransferFrom(address(this), msg.sender, amount);
+        basis.safeTransfer(msg.sender, amount);
     }
 }
