@@ -57,9 +57,9 @@ contract Staking is StakingState {
         Provider storage currentProvider = providers[provider];
         currentProvider.power += amount;
 
-        Delegation storage userDelegation = delegations[msg.sender][provider];
-        userDelegation.amount += amount;
-        userDelegation.unlockTime = block.timestamp + lockPeriod;
+        Delegation storage delegationWrapper = delegations[msg.sender][provider];
+        delegationWrapper.amount += amount;
+        delegationWrapper.unlockTime = block.timestamp + lockPeriod;
 
         totalStakedSbasis += amount;
     }
@@ -73,8 +73,8 @@ contract Staking is StakingState {
         Provider storage currentProvider = providers[provider];
         currentProvider.power -= amount;
 
-        Delegation storage userDelegation = delegations[msg.sender][provider];
-        userDelegation.amount -= amount;
+        Delegation storage delegationWrapper = delegations[msg.sender][provider];
+        delegationWrapper.amount -= amount;
 
         totalStakedSbasis -= amount;
 
