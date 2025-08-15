@@ -35,4 +35,6 @@ contract StakingState {
     uint256 public totalStakedSbasis;
 
     uint256 public totalStakedBasis;
+
+    address[] public allProviders;
 }

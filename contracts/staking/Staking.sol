@@ -34,6 +34,8 @@ contract Staking is StakingState {
             commission: commission_,
             power: 0
         });
+
+        allProviders.push(msg.sender);
     }
 
     function editProvider(string memory description_, uint8 commission_) public {
