@@ -19,6 +19,7 @@ contract Staking is StakingState {
     constructor(address basisAddress, address sbasisAddress) {
         basis = IERC20(basisAddress);
         sbasis = IERC20(sbasisAddress);
+        totalReward = 0;
     }
 
     /* ================= FUNCTIONS ================= */
@@ -115,5 +116,52 @@ contract Staking is StakingState {
         totalStakedBasis -= amount;
 
         basis.safeTransfer(msg.sender, amount);
+    }
+
+    function getTotalReward() public view returns (uint256) {
+        return basis.balanceOf(address(this)) - totalStakedBasis;
+    }
+
+    function calculateProviderReward(address providerAddr) public view returns (uint256) {
+        require(providers[providerAddr].providerAddress != address(0), "basis.staking.Staking.calculateProviderReward(): provider not found");
+
+        uint256 totalPower;
+        for (uint256 i = 0; i < allProviders.length; i++) {
+        totalPower += providers[allProviders[i]].power;
+        }
+        if (totalPower == 0) return 0;
+
+        uint256 providerTotalReward = (providers[providerAddr].power * getTotalReward()) / totalPower;
+
+        uint256 providerSelfStake = staked[providerAddr].amount;
+
+        uint256 providerSelfReward = (providerSelfStake * providerTotalReward) / providers[providerAddr].power;
+
+        uint256 commissionReward = ((providerTotalReward - providerSelfReward) * providers[providerAddr].commission) / 100;
+
+        return providerSelfReward + commissionReward;
+    }
+
+    function calculateDelegatorReward(address delegator, address providerAddr) public view returns (uint256) {
+        require(providers[providerAddr].providerAddress != address(0), "basis.staking.Staking.calculateDelegatorReward(): provider not found");
+
+        Delegation memory delegationWrapper = delegations[delegator][providerAddr];
+        if (delegationWrapper.amount == 0) return 0;
+
+        uint256 totalPower;
+        for (uint256 i = 0; i < allProviders.length; i++) {
+            totalPower += providers[allProviders[i]].power;
+        }
+        if (totalPower == 0) return 0;
+
+        uint256 providerTotalReward = (providers[providerAddr].power * getTotalReward()) / totalPower;
+
+        uint256 providerSelfStake = staked[providerAddr].amount;
+
+        uint256 providerSelfReward = (providerSelfStake * providerTotalReward) / providers[providerAddr].power;
+        uint256 commissionReward = ((providerTotalReward - providerSelfReward) * providers[providerAddr].commission) / 100;
+        uint256 rewardAfterCommission = providerTotalReward - providerSelfReward - commissionReward;
+
+        return (delegationWrapper.amount * rewardAfterCommission) / (providers[providerAddr].power - providerSelfStake);
     }
 }

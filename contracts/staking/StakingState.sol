@@ -37,4 +37,7 @@ contract StakingState {
     uint256 public totalStakedBasis;
 
     address[] public allProviders;
+
+    uint256 public totalReward;
+
 }
