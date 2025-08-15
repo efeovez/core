@@ -164,4 +164,27 @@ contract Staking is StakingState {
 
         return (delegationWrapper.amount * rewardAfterCommission) / (providers[providerAddr].power - providerSelfStake);
     }
+
+    function withdrawProviderReward() external {
+        require(providers[msg.sender].providerAddress != address(0), "basis.staking.Staking.withdrawProviderReward(): provider not found");
+
+        uint256 totalRewardEarned = calculateProviderReward(msg.sender);
+        uint256 rewardToClaim = totalRewardEarned - claimedRewards[msg.sender];
+        require(rewardToClaim > 0, "no reward");
+
+        claimedRewards[msg.sender] += rewardToClaim;
+        basis.safeTransfer(msg.sender, rewardToClaim);
+    }
+
+    function withdrawDelegatorReward(address providerAddr) external {
+        require(providers[providerAddr].providerAddress != address(0), "basis.staking.Staking.withdrawProviderReward(): provider not found");
+        require(delegations[msg.sender][providerAddr].amount > 0, "no delegation");
+
+        uint256 totalRewardEarned = calculateDelegatorReward(msg.sender, providerAddr);
+        uint256 rewardToClaim = totalRewardEarned - claimedDelegatorRewards[msg.sender];
+        require(rewardToClaim > 0, "no reward");
+
+        claimedDelegatorRewards[msg.sender] += rewardToClaim;
+        basis.safeTransfer(msg.sender, rewardToClaim);
+    }
 }
