@@ -91,24 +91,24 @@ contract Staking is StakingState {
         Provider storage currentProvider = providers[msg.sender];
         currentProvider.power += amount;
 
-        Delegation storage userDelegation = delegations[msg.sender][msg.sender];
-        userDelegation.amount += amount;
-        userDelegation.unlockTime = block.timestamp + lockPeriod;
+        Staked storage stakedWrapper = staked[msg.sender];
+        stakedWrapper.amount += amount;
+        stakedWrapper.unlockTime = block.timestamp + lockPeriod;
 
         totalStakedBasis += amount;
     }
 
     function unstake(uint256 amount) public {
-        require(delegations[msg.sender][msg.sender].amount >= amount, "basis.staking.Staking.unstake(): amount you wish to undelegate must be less than or equal to the amount you have delegated");
+        require(staked[msg.sender].amount >= amount, "basis.staking.Staking.unstake(): amount you wish to undelegate must be less than or equal to the amount you have delegated");
         require(providers[msg.sender].providerAddress != address(0), "basis.staking.Staking.unstake(): provider not registered");
-        require(delegations[msg.sender][msg.sender].amount > 0, "basis.staking.Staking.unstake(): you do not have an existing delegation");
-        require(block.timestamp >= delegations[msg.sender][msg.sender].unlockTime, "basis.staking.Staking.unstake(): your token is locked");
+        require(staked[msg.sender].amount > 0, "basis.staking.Staking.unstake(): you do not have an existing delegation");
+        require(block.timestamp >= staked[msg.sender].unlockTime, "basis.staking.Staking.unstake(): your token is locked");
 
         Provider storage currentProvider = providers[msg.sender];
         currentProvider.power -= amount;
 
-        Delegation storage userDelegation = delegations[msg.sender][msg.sender];
-        userDelegation.amount -= amount;
+        Staked storage stakedWrapper = staked[msg.sender];
+        stakedWrapper.amount -= amount;
 
         totalStakedBasis -= amount;
 

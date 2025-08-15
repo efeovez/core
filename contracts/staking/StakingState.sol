@@ -13,8 +13,13 @@ contract StakingState {
     }
 
     struct Delegation {
-    uint256 amount;
-    uint256 unlockTime;
+        uint256 amount;
+        uint256 unlockTime;
+    }
+
+    struct Staked {
+        uint256 amount;
+        uint256 unlockTime;
     }
 
     /* ================= STATE VARIABLES ================= */
@@ -22,6 +27,8 @@ contract StakingState {
     mapping(address => Provider) public providers;
 
     mapping(address => mapping(address => Delegation)) public delegations;
+
+    mapping(address => Staked) public staked;
 
     uint256 public lockPeriod = 21 days;
 
