@@ -203,7 +203,7 @@ contract Staking is StakingState, StakingSetters {
         claimedDelegatorRewards[msg.sender][provider] += rewardToClaim;
         basis.safeTransfer(msg.sender, rewardToClaim);
 
-        emit WithdrawDelegatorReward(msg.sender, rewardToClaim);
+        emit WithdrawDelegatorReward(msg.sender, provider, rewardToClaim);
     }
 
     /* ================= EVENT ================= */
@@ -222,5 +222,5 @@ contract Staking is StakingState, StakingSetters {
 
     event WithdrawProviderReward(address indexed provider, uint256 indexed amount);
 
-    event WithdrawDelegatorReward(address indexed delegator, uint256 indexed amount);
+    event WithdrawDelegatorReward(address indexed delegator, address indexed provider, uint256 indexed amount);
 }
