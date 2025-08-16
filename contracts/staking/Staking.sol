@@ -19,7 +19,7 @@ contract Staking is StakingState {
     constructor(address basisAddress, address sbasisAddress) {
         basis = IERC20(basisAddress);
         sbasis = IERC20(sbasisAddress);
-        }
+    }
 
     /* ================= FUNCTIONS ================ */
 
