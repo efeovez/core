@@ -30,7 +30,7 @@ contract StakingState {
 
     mapping(address => Staked) public staked;
 
-    uint256 public lockPeriod = 21 days;
+    uint256 public lockPeriod = 7 days;
 
     uint256 public totalStakedSbasis;
 
@@ -38,9 +38,7 @@ contract StakingState {
 
     address[] public allProviders;
 
-    uint256 public totalReward;
-
-    mapping(address => uint256) public claimedRewards;
+    mapping(address => uint256) public claimedProviderRewards;
 
     mapping(address => uint256) public claimedDelegatorRewards;
 }

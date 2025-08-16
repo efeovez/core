@@ -19,10 +19,9 @@ contract Staking is StakingState {
     constructor(address basisAddress, address sbasisAddress) {
         basis = IERC20(basisAddress);
         sbasis = IERC20(sbasisAddress);
-        totalReward = 0;
-    }
+        }
 
-    /* ================= FUNCTIONS ================= */
+    /* ================= FUNCTIONS ================ */
 
     function createProvider(string memory description_, uint8 commission_) public {
         require(bytes(description_).length < 50, "basis.staking.Staking.createProvider(): description_ must be under 50 characters");
@@ -118,12 +117,12 @@ contract Staking is StakingState {
         basis.safeTransfer(msg.sender, amount);
     }
 
-    function getTotalReward() public view returns (uint256) {
+    function getTotalReward() public view returns(uint256) { 
         return basis.balanceOf(address(this)) - totalStakedBasis;
     }
 
-    function calculateProviderReward(address providerAddr) public view returns (uint256) {
-        require(providers[providerAddr].providerAddress != address(0), "basis.staking.Staking.calculateProviderReward(): provider not found");
+    function calculateProviderReward(address providerAddr) public view returns(uint256) {
+        require(providers[providerAddr].providerAddress != address(0), "basis.staking.Staking.calculateProviderReward(): provider not registered");
 
         uint256 totalPower;
         for (uint256 i = 0; i < allProviders.length; i++) {
@@ -142,8 +141,8 @@ contract Staking is StakingState {
         return providerSelfReward + commissionReward;
     }
 
-    function calculateDelegatorReward(address delegator, address providerAddr) public view returns (uint256) {
-        require(providers[providerAddr].providerAddress != address(0), "basis.staking.Staking.calculateDelegatorReward(): provider not found");
+    function calculateDelegatorReward(address delegator, address providerAddr) public view returns(uint256) {
+        require(providers[providerAddr].providerAddress != address(0), "basis.staking.Staking.calculateDelegatorReward(): provider not registered");
 
         Delegation memory delegationWrapper = delegations[delegator][providerAddr];
         if (delegationWrapper.amount == 0) return 0;
@@ -165,20 +164,22 @@ contract Staking is StakingState {
         return (delegationWrapper.amount * rewardAfterCommission) / (providers[providerAddr].power - providerSelfStake);
     }
 
-    function withdrawProviderReward() external {
-        require(providers[msg.sender].providerAddress != address(0), "basis.staking.Staking.withdrawProviderReward(): provider not found");
+    function withdrawProviderReward() public {
+        require(providers[msg.sender].providerAddress != address(0), "basis.staking.Staking.withdrawProviderReward(): provider not registered");
+        require(block.timestamp >= staked[msg.sender].unlockTime, "basis.staking.Staking.withdrawProviderReward(): your token is locked");
 
         uint256 totalRewardEarned = calculateProviderReward(msg.sender);
-        uint256 rewardToClaim = totalRewardEarned - claimedRewards[msg.sender];
+        uint256 rewardToClaim = totalRewardEarned - claimedProviderRewards[msg.sender];
         require(rewardToClaim > 0, "no reward");
 
-        claimedRewards[msg.sender] += rewardToClaim;
+        claimedProviderRewards[msg.sender] += rewardToClaim;
         basis.safeTransfer(msg.sender, rewardToClaim);
     }
 
-    function withdrawDelegatorReward(address providerAddr) external {
-        require(providers[providerAddr].providerAddress != address(0), "basis.staking.Staking.withdrawProviderReward(): provider not found");
+    function withdrawDelegatorReward(address providerAddr) public {
+        require(providers[providerAddr].providerAddress != address(0), "basis.staking.Staking.withdrawProviderReward(): provider not registered");
         require(delegations[msg.sender][providerAddr].amount > 0, "no delegation");
+        require(block.timestamp >= delegations[msg.sender][providerAddr].unlockTime, "basis.staking.Staking.wihdrawDelegatorReward(): your token is locked");
 
         uint256 totalRewardEarned = calculateDelegatorReward(msg.sender, providerAddr);
         uint256 rewardToClaim = totalRewardEarned - claimedDelegatorRewards[msg.sender];
