@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {IERC20} from "../libs/IERC20.sol";
+import {SafeERC20} from "../libs/SafeERC20.sol";
+
 contract StakingState {
 
     /* ================= STRUCTS ================= */
@@ -43,4 +46,9 @@ contract StakingState {
     mapping(address => mapping(address => uint256)) public claimedDelegatorRewards;
 
     uint256 public maxProviders = 50;
+
+    using SafeERC20 for IERC20;
+
+    IERC20 public basis;
+    IERC20 public sbasis;
 }

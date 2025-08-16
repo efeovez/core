@@ -9,12 +9,7 @@ import {StakingSetters} from "./StakingSetters.sol";
 
 contract Staking is StakingState, StakingSetters, ReentrancyGuard {
 
-    /* ================= STATE VARIABLES ================= */
-
     using SafeERC20 for IERC20;
-
-    IERC20 public basis;
-    IERC20 public sbasis;
 
     /* ================= CONSTRUCTOR ================= */
 
