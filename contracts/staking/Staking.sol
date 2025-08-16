@@ -4,8 +4,9 @@ pragma solidity ^0.8.0;
 import {IERC20} from "../libs/IERC20.sol";
 import {SafeERC20} from "../libs/SafeERC20.sol";
 import {StakingState} from "./StakingState.sol";
+import {StakingSetters} from "./StakingSetters.sol";
 
-contract Staking is StakingState {
+contract Staking is StakingState, StakingSetters {
 
     /* ================= STATE VARIABLES ================= */
 
@@ -36,6 +37,8 @@ contract Staking is StakingState {
         });
 
         allProviders.push(msg.sender);
+
+        emit ProviderCreated(msg.sender, description_, commission_);
     }
 
     function editProvider(string memory description_, uint8 commission_) public {
@@ -47,6 +50,8 @@ contract Staking is StakingState {
 
         currentProvider.description = description_;
         currentProvider.commission = commission_;
+
+        emit ProviderEdited(msg.sender, description_, commission_);
     }
 
     function delegate(address provider, uint256 amount) public {
@@ -64,6 +69,8 @@ contract Staking is StakingState {
         delegationWrapper.unlockTime = block.timestamp + lockPeriod;
 
         totalStakedSbasis += amount;
+
+        emit Delegated(msg.sender, provider, amount);
     }
 
     function undelegate(address provider, uint256 amount) public {
@@ -81,6 +88,8 @@ contract Staking is StakingState {
         totalStakedSbasis -= amount;
 
         sbasis.safeTransfer(msg.sender, amount);
+
+        emit Undelegated(msg.sender, provider, amount);
     }
 
     function stake(uint256 amount) public {
@@ -98,6 +107,8 @@ contract Staking is StakingState {
         stakedWrapper.unlockTime = block.timestamp + lockPeriod;
 
         totalStakedBasis += amount;
+
+        emit ProviderStaked(msg.sender, amount);
     }
 
     function unstake(uint256 amount) public {
@@ -115,6 +126,8 @@ contract Staking is StakingState {
         totalStakedBasis -= amount;
 
         basis.safeTransfer(msg.sender, amount);
+
+        emit ProviderUnstaked(msg.sender, amount);
     }
 
     function getTotalReward() public view returns(uint256) { 
@@ -174,6 +187,8 @@ contract Staking is StakingState {
 
         claimedProviderRewards[msg.sender] += rewardToClaim;
         basis.safeTransfer(msg.sender, rewardToClaim);
+
+        emit WithdrawProviderReward(msg.sender, rewardToClaim);
     }
 
     function withdrawDelegatorReward(address providerAddr) public {
@@ -187,5 +202,25 @@ contract Staking is StakingState {
 
         claimedDelegatorRewards[msg.sender] += rewardToClaim;
         basis.safeTransfer(msg.sender, rewardToClaim);
+
+        emit WithdrawDelegatorReward(msg.sender, rewardToClaim);
     }
+
+    /* ================= EVENT ================= */
+
+    event ProviderCreated(address indexed provider, string indexed description, uint8 indexed commission);
+
+    event ProviderEdited(address indexed provider, string indexed description, uint8 indexed commission);
+
+    event Delegated(address indexed delegator, address indexed provider, uint256 indexed amount);
+
+    event Undelegated(address indexed delegator, address indexed provider, uint256 indexed amount);
+
+    event ProviderStaked(address indexed provider, uint256 indexed amount);
+
+    event ProviderUnstaked(address indexed provider, uint256 indexed amount);
+
+    event WithdrawProviderReward(address indexed provider, uint256 indexed amount);
+
+    event WithdrawDelegatorReward(address indexed delegator, uint256 indexed amount);
 }
