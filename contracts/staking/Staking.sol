@@ -109,7 +109,7 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
     }
 
     function unstake(uint256 amount) public nonReentrant {
-        require(staked[msg.sender].amount >= amount, "basis.staking.Staking.unstake(): amount you wish to undelegate must be less than or equal to the amount you have delegated");
+        require(staked[msg.sender].amount >= amount, "basis.staking.Staking.unstake(): amount you wish to unstake must be less than or equal to the amount you have staked");
         require(providers[msg.sender].providerAddress != address(0), "basis.staking.Staking.unstake(): provider not registered");
         require(staked[msg.sender].amount > 0, "basis.staking.Staking.unstake(): you do not have an existing delegation");
         require(block.timestamp >= staked[msg.sender].unlockTime, "basis.staking.Staking.unstake(): your token is locked");
