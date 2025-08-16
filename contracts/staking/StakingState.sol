@@ -41,4 +41,6 @@ contract StakingState {
     mapping(address => uint256) public claimedProviderRewards;
 
     mapping(address => mapping(address => uint256)) public claimedDelegatorRewards;
+
+    uint256 public maxProviders = 50;
 }

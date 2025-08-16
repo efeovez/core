@@ -29,6 +29,7 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
         require(bytes(description).length < 50, "basis.staking.Staking.createProvider(): description_ must be under 50 characters");
         require(commission <= 100, "basis.staking.Staking.createProvider(): commission_ must not exceed 100");
         require(providers[msg.sender].providerAddress == address(0), "basis.staking.Staking.createProvider(): provider already exists");
+        require(allProviders.length < maxProviders, "basis.staking.Staking.createProvider(): max provider limit reached");
 
         providers[msg.sender] = Provider({
             providerAddress: msg.sender,
@@ -209,9 +210,9 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
 
     /* ================= EVENT ================= */
 
-    event ProviderCreated(address indexed provider, string indexed description, uint8 indexed commission);
+    event ProviderCreated(address indexed provider, string description, uint8 indexed commission);
 
-    event ProviderEdited(address indexed provider, string indexed description, uint8 indexed commission);
+    event ProviderEdited(address indexed provider, string description, uint8 indexed commission);
 
     event Delegated(address indexed delegator, address indexed provider, uint256 indexed amount);
 
