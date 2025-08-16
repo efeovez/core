@@ -3,10 +3,11 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "../libs/IERC20.sol";
 import {SafeERC20} from "../libs/SafeERC20.sol";
+import {ReentrancyGuard} from "../libs/ReentrancyGuard.sol";
 import {StakingState} from "./StakingState.sol";
 import {StakingSetters} from "./StakingSetters.sol";
 
-contract Staking is StakingState, StakingSetters {
+contract Staking is StakingState, StakingSetters, ReentrancyGuard {
 
     /* ================= STATE VARIABLES ================= */
 
@@ -73,7 +74,7 @@ contract Staking is StakingState, StakingSetters {
         emit Delegated(msg.sender, provider, amount);
     }
 
-    function undelegate(address provider, uint256 amount) public {
+    function undelegate(address provider, uint256 amount) public nonReentrant {
         require(delegations[msg.sender][provider].amount >= amount, "basis.staking.Staking.undelegate(): amount you wish to undelegate must be less than or equal to the amount you have delegated");
         require(providers[provider].providerAddress != address(0), "basis.staking.Staking.delegate(): provider not registered");
         require(delegations[msg.sender][provider].amount > 0, "basis.staking.Staking.undelegate(): you do not have an existing delegation");
@@ -111,7 +112,7 @@ contract Staking is StakingState, StakingSetters {
         emit ProviderStaked(msg.sender, amount);
     }
 
-    function unstake(uint256 amount) public {
+    function unstake(uint256 amount) public nonReentrant {
         require(staked[msg.sender].amount >= amount, "basis.staking.Staking.unstake(): amount you wish to undelegate must be less than or equal to the amount you have delegated");
         require(providers[msg.sender].providerAddress != address(0), "basis.staking.Staking.unstake(): provider not registered");
         require(staked[msg.sender].amount > 0, "basis.staking.Staking.unstake(): you do not have an existing delegation");
@@ -177,7 +178,7 @@ contract Staking is StakingState, StakingSetters {
         return (delegationWrapper.amount * rewardAfterCommission) / (providers[provider].power - providerSelfStake);
     }
 
-    function withdrawProviderReward() public {
+    function withdrawProviderReward() public nonReentrant {
         require(providers[msg.sender].providerAddress != address(0), "basis.staking.Staking.withdrawProviderReward(): provider not registered");
         require(block.timestamp >= staked[msg.sender].unlockTime, "basis.staking.Staking.withdrawProviderReward(): your token is locked");
 
@@ -191,7 +192,7 @@ contract Staking is StakingState, StakingSetters {
         emit WithdrawProviderReward(msg.sender, rewardToClaim);
     }
 
-    function withdrawDelegatorReward(address provider) public {
+    function withdrawDelegatorReward(address provider) public nonReentrant {
         require(providers[provider].providerAddress != address(0), "basis.staking.Staking.withdrawProviderReward(): provider not registered");
         require(delegations[msg.sender][provider].amount > 0, "no delegation");
         require(block.timestamp >= delegations[msg.sender][provider].unlockTime, "basis.staking.Staking.wihdrawDelegatorReward(): your token is locked");
