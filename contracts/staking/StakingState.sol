@@ -40,5 +40,5 @@ contract StakingState {
 
     mapping(address => uint256) public claimedProviderRewards;
 
-    mapping(address => uint256) public claimedDelegatorRewards;
+    mapping(address => mapping(address => uint256)) public claimedDelegatorRewards;
 }

@@ -197,10 +197,10 @@ contract Staking is StakingState, StakingSetters {
         require(block.timestamp >= delegations[msg.sender][provider].unlockTime, "basis.staking.Staking.wihdrawDelegatorReward(): your token is locked");
 
         uint256 totalRewardEarned = calculateDelegatorReward(msg.sender, provider);
-        uint256 rewardToClaim = totalRewardEarned - claimedDelegatorRewards[msg.sender];
+        uint256 rewardToClaim = totalRewardEarned - claimedDelegatorRewards[msg.sender][provider];
         require(rewardToClaim > 0, "no reward");
 
-        claimedDelegatorRewards[msg.sender] += rewardToClaim;
+        claimedDelegatorRewards[msg.sender][provider] += rewardToClaim;
         basis.safeTransfer(msg.sender, rewardToClaim);
 
         emit WithdrawDelegatorReward(msg.sender, rewardToClaim);
