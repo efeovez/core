@@ -24,34 +24,34 @@ contract Staking is StakingState, StakingSetters {
 
     /* ================= FUNCTIONS ================ */
 
-    function createProvider(string memory description_, uint8 commission_) public {
-        require(bytes(description_).length < 50, "basis.staking.Staking.createProvider(): description_ must be under 50 characters");
-        require(commission_ <= 100, "basis.staking.Staking.createProvider(): commission_ must not exceed 100");
+    function createProvider(string memory description, uint8 commission) public {
+        require(bytes(description).length < 50, "basis.staking.Staking.createProvider(): description_ must be under 50 characters");
+        require(commission <= 100, "basis.staking.Staking.createProvider(): commission_ must not exceed 100");
         require(providers[msg.sender].providerAddress == address(0), "basis.staking.Staking.createProvider(): provider already exists");
 
         providers[msg.sender] = Provider({
             providerAddress: msg.sender,
-            description: description_,
-            commission: commission_,
+            description: description,
+            commission: commission,
             power: 0
         });
 
         allProviders.push(msg.sender);
 
-        emit ProviderCreated(msg.sender, description_, commission_);
+        emit ProviderCreated(msg.sender, description, commission);
     }
 
-    function editProvider(string memory description_, uint8 commission_) public {
-        require(bytes(description_).length < 50, "basis.staking.Staking.editProvider(): description_ must be under 50 characters");
-        require(commission_ <= 100, "basis.staking.Staking.editProvider(): commission_ must not exceed 100");
+    function editProvider(string memory description, uint8 commission) public {
+        require(bytes(description).length < 50, "basis.staking.Staking.editProvider(): description_ must be under 50 characters");
+        require(commission <= 100, "basis.staking.Staking.editProvider(): commission_ must not exceed 100");
         require(msg.sender == providers[msg.sender].providerAddress, "basis.staking.Staking.editProvider(): provider not registered");
 
-        Provider storage currentProvider = providers[msg.sender];
+        Provider storage providerWrapper = providers[msg.sender];
 
-        currentProvider.description = description_;
-        currentProvider.commission = commission_;
+        providerWrapper.description = description;
+        providerWrapper.commission = commission;
 
-        emit ProviderEdited(msg.sender, description_, commission_);
+        emit ProviderEdited(msg.sender, description, commission);
     }
 
     function delegate(address provider, uint256 amount) public {
@@ -61,8 +61,8 @@ contract Staking is StakingState, StakingSetters {
 
         sbasis.safeTransferFrom(msg.sender, address(this), amount);
 
-        Provider storage currentProvider = providers[provider];
-        currentProvider.power += amount;
+        Provider storage providerWrapper = providers[provider];
+        providerWrapper.power += amount;
 
         Delegation storage delegationWrapper = delegations[msg.sender][provider];
         delegationWrapper.amount += amount;
@@ -79,8 +79,8 @@ contract Staking is StakingState, StakingSetters {
         require(delegations[msg.sender][provider].amount > 0, "basis.staking.Staking.undelegate(): you do not have an existing delegation");
         require(block.timestamp >= delegations[msg.sender][provider].unlockTime, "basis.staking.Staking.undelegate(): your token is locked");
 
-        Provider storage currentProvider = providers[provider];
-        currentProvider.power -= amount;
+        Provider storage providerWrapper = providers[provider];
+        providerWrapper.power -= amount;
 
         Delegation storage delegationWrapper = delegations[msg.sender][provider];
         delegationWrapper.amount -= amount;
@@ -99,8 +99,8 @@ contract Staking is StakingState, StakingSetters {
 
         basis.safeTransferFrom(msg.sender, address(this), amount);
 
-        Provider storage currentProvider = providers[msg.sender];
-        currentProvider.power += amount;
+        Provider storage providerWrapper = providers[msg.sender];
+        providerWrapper.power += amount;
 
         Staked storage stakedWrapper = staked[msg.sender];
         stakedWrapper.amount += amount;
@@ -117,8 +117,8 @@ contract Staking is StakingState, StakingSetters {
         require(staked[msg.sender].amount > 0, "basis.staking.Staking.unstake(): you do not have an existing delegation");
         require(block.timestamp >= staked[msg.sender].unlockTime, "basis.staking.Staking.unstake(): your token is locked");
 
-        Provider storage currentProvider = providers[msg.sender];
-        currentProvider.power -= amount;
+        Provider storage providerWrapper = providers[msg.sender];
+        providerWrapper.power -= amount;
 
         Staked storage stakedWrapper = staked[msg.sender];
         stakedWrapper.amount -= amount;
@@ -134,8 +134,8 @@ contract Staking is StakingState, StakingSetters {
         return basis.balanceOf(address(this)) - totalStakedBasis;
     }
 
-    function calculateProviderReward(address providerAddr) public view returns(uint256) {
-        require(providers[providerAddr].providerAddress != address(0), "basis.staking.Staking.calculateProviderReward(): provider not registered");
+    function calculateProviderReward(address provider) public view returns(uint256) {
+        require(providers[provider].providerAddress != address(0), "basis.staking.Staking.calculateProviderReward(): provider not registered");
 
         uint256 totalPower;
         for (uint256 i = 0; i < allProviders.length; i++) {
@@ -143,21 +143,21 @@ contract Staking is StakingState, StakingSetters {
         }
         if (totalPower == 0) return 0;
 
-        uint256 providerTotalReward = (providers[providerAddr].power * getTotalReward()) / totalPower;
+        uint256 providerTotalReward = (providers[provider].power * getTotalReward()) / totalPower;
 
-        uint256 providerSelfStake = staked[providerAddr].amount;
+        uint256 providerSelfStake = staked[provider].amount;
 
-        uint256 providerSelfReward = (providerSelfStake * providerTotalReward) / providers[providerAddr].power;
+        uint256 providerSelfReward = (providerSelfStake * providerTotalReward) / providers[provider].power;
 
-        uint256 commissionReward = ((providerTotalReward - providerSelfReward) * providers[providerAddr].commission) / 100;
+        uint256 commissionReward = ((providerTotalReward - providerSelfReward) * providers[provider].commission) / 100;
 
         return providerSelfReward + commissionReward;
     }
 
-    function calculateDelegatorReward(address delegator, address providerAddr) public view returns(uint256) {
-        require(providers[providerAddr].providerAddress != address(0), "basis.staking.Staking.calculateDelegatorReward(): provider not registered");
+    function calculateDelegatorReward(address delegator, address provider) public view returns(uint256) {
+        require(providers[provider].providerAddress != address(0), "basis.staking.Staking.calculateDelegatorReward(): provider not registered");
 
-        Delegation memory delegationWrapper = delegations[delegator][providerAddr];
+        Delegation memory delegationWrapper = delegations[delegator][provider];
         if (delegationWrapper.amount == 0) return 0;
 
         uint256 totalPower;
@@ -166,15 +166,15 @@ contract Staking is StakingState, StakingSetters {
         }
         if (totalPower == 0) return 0;
 
-        uint256 providerTotalReward = (providers[providerAddr].power * getTotalReward()) / totalPower;
+        uint256 providerTotalReward = (providers[provider].power * getTotalReward()) / totalPower;
 
-        uint256 providerSelfStake = staked[providerAddr].amount;
+        uint256 providerSelfStake = staked[provider].amount;
 
-        uint256 providerSelfReward = (providerSelfStake * providerTotalReward) / providers[providerAddr].power;
-        uint256 commissionReward = ((providerTotalReward - providerSelfReward) * providers[providerAddr].commission) / 100;
+        uint256 providerSelfReward = (providerSelfStake * providerTotalReward) / providers[provider].power;
+        uint256 commissionReward = ((providerTotalReward - providerSelfReward) * providers[provider].commission) / 100;
         uint256 rewardAfterCommission = providerTotalReward - providerSelfReward - commissionReward;
 
-        return (delegationWrapper.amount * rewardAfterCommission) / (providers[providerAddr].power - providerSelfStake);
+        return (delegationWrapper.amount * rewardAfterCommission) / (providers[provider].power - providerSelfStake);
     }
 
     function withdrawProviderReward() public {
@@ -191,12 +191,12 @@ contract Staking is StakingState, StakingSetters {
         emit WithdrawProviderReward(msg.sender, rewardToClaim);
     }
 
-    function withdrawDelegatorReward(address providerAddr) public {
-        require(providers[providerAddr].providerAddress != address(0), "basis.staking.Staking.withdrawProviderReward(): provider not registered");
-        require(delegations[msg.sender][providerAddr].amount > 0, "no delegation");
-        require(block.timestamp >= delegations[msg.sender][providerAddr].unlockTime, "basis.staking.Staking.wihdrawDelegatorReward(): your token is locked");
+    function withdrawDelegatorReward(address provider) public {
+        require(providers[provider].providerAddress != address(0), "basis.staking.Staking.withdrawProviderReward(): provider not registered");
+        require(delegations[msg.sender][provider].amount > 0, "no delegation");
+        require(block.timestamp >= delegations[msg.sender][provider].unlockTime, "basis.staking.Staking.wihdrawDelegatorReward(): your token is locked");
 
-        uint256 totalRewardEarned = calculateDelegatorReward(msg.sender, providerAddr);
+        uint256 totalRewardEarned = calculateDelegatorReward(msg.sender, provider);
         uint256 rewardToClaim = totalRewardEarned - claimedDelegatorRewards[msg.sender];
         require(rewardToClaim > 0, "no reward");
 
