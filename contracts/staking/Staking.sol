@@ -21,10 +21,10 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
     /* ================= FUNCTIONS ================ */
 
     function createProvider(string memory description, uint8 commission) public {
-        require(bytes(description).length < 50, "basis.staking.Staking.createProvider(): description_ must be under 50 characters");
-        require(commission <= 100, "basis.staking.Staking.createProvider(): commission_ must not exceed 100");
-        require(providers[msg.sender].providerAddress == address(0), "basis.staking.Staking.createProvider(): provider already exists");
-        require(allProviders.length < maxProviders, "basis.staking.Staking.createProvider(): max provider limit reached");
+        require(bytes(description).length < 50, "basis.createProvider: description must be under 50 characters");
+        require(commission <= 100, "basis.createProvider: commission must not exceed 100");
+        require(providers[msg.sender].providerAddress == address(0), "basis.createProvider: provider already exists");
+        require(allProviders.length < maxProviders, "basis.createProvider: max provider limit reached");
 
         providers[msg.sender] = Provider({
             providerAddress: msg.sender,
@@ -39,9 +39,9 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
     }
 
     function editProvider(string memory description, uint8 commission) public {
-        require(bytes(description).length < 50, "basis.staking.Staking.editProvider(): description_ must be under 50 characters");
-        require(commission <= 100, "basis.staking.Staking.editProvider(): commission_ must not exceed 100");
-        require(msg.sender == providers[msg.sender].providerAddress, "basis.staking.Staking.editProvider(): provider not registered");
+        require(bytes(description).length < 50, "basis.editProvider: description must be under 50 characters");
+        require(commission <= 100, "basis.editProvider: commission must not exceed 100");
+        require(msg.sender == providers[msg.sender].providerAddress, "basis.editProvider: provider not registered");
 
         Provider storage providerWrapper = providers[msg.sender];
 
@@ -52,9 +52,9 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
     }
 
     function delegate(address provider, uint256 amount) public {
-        require(sbasis.allowance(msg.sender, address(this)) >= amount, "basis.staking.Staking.delegate(): approved amount is not sufficient");
-        require(providers[provider].providerAddress != address(0), "basis.staking.Staking.delegate(): provider not registered");
-        require(amount > 0, "basis.staking.Staking.delegate(): you cannot delegate zero");
+        require(sbasis.allowance(msg.sender, address(this)) >= amount, "basis.delegate: approved amount is not sufficient");
+        require(providers[provider].providerAddress != address(0), "basis.delegate: provider not registered");
+        require(amount > 0, "basis.delegate: you cannot delegate zero");
 
         sbasis.safeTransferFrom(msg.sender, address(this), amount);
 
@@ -71,10 +71,10 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
     }
 
     function undelegate(address provider, uint256 amount) public nonReentrant {
-        require(delegations[msg.sender][provider].amount >= amount, "basis.staking.Staking.undelegate(): amount you wish to undelegate must be less than or equal to the amount you have delegated");
-        require(providers[provider].providerAddress != address(0), "basis.staking.Staking.delegate(): provider not registered");
-        require(delegations[msg.sender][provider].amount > 0, "basis.staking.Staking.undelegate(): you do not have an existing delegation");
-        require(block.timestamp >= delegations[msg.sender][provider].unlockTime, "basis.staking.Staking.undelegate(): your token is locked");
+        require(delegations[msg.sender][provider].amount >= amount, "basis.undelegate: amount you wish to undelegate must be less than or equal to the amount you have delegated");
+        require(providers[provider].providerAddress != address(0), "basis.delegate: provider not registered");
+        require(delegations[msg.sender][provider].amount > 0, "basis.undelegate: you do not have an existing delegation");
+        require(block.timestamp >= delegations[msg.sender][provider].unlockTime, "basis.undelegate: your token is locked");
 
         Provider storage providerWrapper = providers[provider];
         providerWrapper.power -= amount;
@@ -90,9 +90,9 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
     }
 
     function stake(uint256 amount) public {
-        require(basis.allowance(msg.sender, address(this)) >= amount, "basis.staking.Staking.stake(): approved amount is not sufficient");
-        require(providers[msg.sender].providerAddress != address(0), "basis.staking.Staking.stake(): provider not registered");
-        require(amount > 0, "basis.staking.Staking.stake(): you cannot stake zero");
+        require(basis.allowance(msg.sender, address(this)) >= amount, "basis.stake: approved amount is not sufficient");
+        require(providers[msg.sender].providerAddress != address(0), "basis.stake: provider not registered");
+        require(amount > 0, "basis.stake: you cannot stake zero");
 
         basis.safeTransferFrom(msg.sender, address(this), amount);
 
@@ -109,10 +109,10 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
     }
 
     function unstake(uint256 amount) public nonReentrant {
-        require(staked[msg.sender].amount >= amount, "basis.staking.Staking.unstake(): amount you wish to unstake must be less than or equal to the amount you have staked");
-        require(providers[msg.sender].providerAddress != address(0), "basis.staking.Staking.unstake(): provider not registered");
-        require(staked[msg.sender].amount > 0, "basis.staking.Staking.unstake(): you do not have an existing delegation");
-        require(block.timestamp >= staked[msg.sender].unlockTime, "basis.staking.Staking.unstake(): your token is locked");
+        require(staked[msg.sender].amount >= amount, "basis.unstake: amount you wish to unstake must be less than or equal to the amount you have staked");
+        require(providers[msg.sender].providerAddress != address(0), "basis.unstake: provider not registered");
+        require(staked[msg.sender].amount > 0, "basis.unstake: you do not have an existing delegation");
+        require(block.timestamp >= staked[msg.sender].unlockTime, "basis.unstake: your token is locked");
 
         Provider storage providerWrapper = providers[msg.sender];
         providerWrapper.power -= amount;
@@ -132,7 +132,7 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
     }
 
     function calculateProviderReward(address provider) public view returns(uint256) {
-        require(providers[provider].providerAddress != address(0), "basis.staking.Staking.calculateProviderReward(): provider not registered");
+        require(providers[provider].providerAddress != address(0), "basis.calculateProviderReward: provider not registered");
 
         uint256 totalPower;
         for (uint256 i = 0; i < allProviders.length; i++) {
@@ -152,7 +152,7 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
     }
 
     function calculateDelegatorReward(address delegator, address provider) public view returns(uint256) {
-        require(providers[provider].providerAddress != address(0), "basis.staking.Staking.calculateDelegatorReward(): provider not registered");
+        require(providers[provider].providerAddress != address(0), "basis.calculateDelegatorReward: provider not registered");
 
         Delegation memory delegationWrapper = delegations[delegator][provider];
         if (delegationWrapper.amount == 0) return 0;
@@ -175,7 +175,7 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
     }
 
     function withdrawProviderReward() public nonReentrant {
-        require(providers[msg.sender].providerAddress != address(0), "basis.staking.Staking.withdrawProviderReward(): provider not registered");
+        require(providers[msg.sender].providerAddress != address(0), "basis.withdrawProviderReward: provider not registered");
 
         uint256 totalRewardEarned = calculateProviderReward(msg.sender);
         uint256 rewardToClaim = totalRewardEarned - claimedProviderRewards[msg.sender];
@@ -188,7 +188,7 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
     }
 
     function withdrawDelegatorReward(address provider) public nonReentrant {
-        require(providers[provider].providerAddress != address(0), "basis.staking.Staking.withdrawProviderReward(): provider not registered");
+        require(providers[provider].providerAddress != address(0), "basis.withdrawDelegatorReward: provider not registered");
         require(delegations[msg.sender][provider].amount > 0, "no delegation");
 
         uint256 totalRewardEarned = calculateDelegatorReward(msg.sender, provider);

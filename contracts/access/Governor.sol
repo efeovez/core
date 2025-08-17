@@ -16,7 +16,7 @@ abstract contract Governor {
     /* ================= MODIFIER ================= */
 
     modifier onlyGovernor() {
-        require(msg.sender == governor, "basis.access.Governor.onlyGovernor(): msg.sender is not the governor");
+        require(msg.sender == governor, "basis.onlyGovernor: msg.sender is not the governor");
         _;
     }
 
@@ -31,7 +31,7 @@ abstract contract Governor {
     }
 
     function transferGovernor(address newGovernor) public onlyGovernor {
-        require(newGovernor != address(0), "basis.access.Governor.transferGovernor(): zero address given for new governor");
+        require(newGovernor != address(0), "basis.transferGovernor: zero address given for new governor");
 
         emit GovernorTransferred(governor, newGovernor);
 
