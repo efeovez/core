@@ -13,27 +13,31 @@ contract StakingSetters is StakingState, Governor {
     /* ================= FUNCTIONS ================ */
 
     function setLockPeriod(uint256 newLockPeriod) public onlyGovernor {
-        emit LockPeriodSetted(lockPeriod, newLockPeriod);
-
+        uint256 oldLockPeriod = lockPeriod;
         lockPeriod = newLockPeriod;
+
+        emit LockPeriodSetted(oldLockPeriod, newLockPeriod);
     }
 
     function setMaxProviders(uint256 newMaxProviders) public onlyGovernor {
-        emit MaxProvidersSetted(maxProviders, newMaxProviders);
-
+        uint256 oldMaxProviders = maxProviders;
         maxProviders = newMaxProviders;
+
+        emit MaxProvidersSetted(oldMaxProviders, newMaxProviders);
     }
 
     function setBasis(IERC20 newBasis) public onlyGovernor {
-        emit BasisSetted(basis, newBasis);
-
+        IERC20 oldBasis = basis;
         basis = newBasis;
+
+        emit BasisSetted(oldBasis, newBasis);
     }
 
     function setSbasis(IERC20 newSbasis) public onlyGovernor {
-        emit SBasisSetted(sbasis, newSbasis);
-
+        IERC20 oldSbasis = sbasis;
         sbasis = newSbasis;
+
+        emit SBasisSetted(oldSbasis, newSbasis);
     }
 
     /* ================= EVENTS ================ */

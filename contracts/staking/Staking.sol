@@ -176,7 +176,6 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
 
     function withdrawProviderReward() public nonReentrant {
         require(providers[msg.sender].providerAddress != address(0), "basis.staking.Staking.withdrawProviderReward(): provider not registered");
-        require(block.timestamp >= staked[msg.sender].unlockTime, "basis.staking.Staking.withdrawProviderReward(): your token is locked");
 
         uint256 totalRewardEarned = calculateProviderReward(msg.sender);
         uint256 rewardToClaim = totalRewardEarned - claimedProviderRewards[msg.sender];
@@ -191,7 +190,6 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
     function withdrawDelegatorReward(address provider) public nonReentrant {
         require(providers[provider].providerAddress != address(0), "basis.staking.Staking.withdrawProviderReward(): provider not registered");
         require(delegations[msg.sender][provider].amount > 0, "no delegation");
-        require(block.timestamp >= delegations[msg.sender][provider].unlockTime, "basis.staking.Staking.wihdrawDelegatorReward(): your token is locked");
 
         uint256 totalRewardEarned = calculateDelegatorReward(msg.sender, provider);
         uint256 rewardToClaim = totalRewardEarned - claimedDelegatorRewards[msg.sender][provider];
