@@ -36,4 +36,6 @@ interface IStaking is IERC20 {
     function setBasis(IERC20 newBasis) external;
 
     function setSbasis(IERC20 newSbasis) external;
+
+    function getProvider(address provider) external view returns(address providerAddress);
 }

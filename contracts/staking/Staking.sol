@@ -201,6 +201,11 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
         emit WithdrawDelegatorReward(msg.sender, provider, rewardToClaim);
     }
 
+    function getProvider(address provider) public view returns(address providerAddress) {
+        Provider storage providerWrapper = providers[provider];
+        return (providerWrapper.providerAddress);
+    }
+
     /* ================= EVENT ================= */
 
     event ProviderCreated(address indexed provider, string description, uint8 indexed commission);
