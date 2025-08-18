@@ -23,7 +23,7 @@ contract Oracle {
     }
 
     function priceVote(uint224 basisUsdPrice) public onlyProvider returns(bytes32) {
-        require(block.number % 5 == 0, "basis.priceVote: can only vote every 5 blocks");
+        require(block.number % 5 == 4 || block.number % 5 == 5 || block.number % 5 == 6 || block.number % 5 == 9 || block.number % 5 == 0 || block.number % 5 == 1, "basis.priceVote: can only vote every 5 blocks");
 
         bytes32 hashedPrice = keccak256(abi.encodePacked(basisUsdPrice));
 
@@ -39,7 +39,7 @@ contract Oracle {
     }
 
     function pricePreVote(bytes32 BasisUsdPrice) public onlyProvider {
-        require(block.number % 5 == 0, "basis.priceVote: can only vote every 5 blocks");
+        require(block.number % 5 == 4 || block.number % 5 == 5 || block.number % 5 == 6 || block.number % 5 == 9 || block.number % 5 == 0 || block.number % 5 == 1, "basis.priceVote: can only vote every 5 blocks");
 
         pricePreVotes[msg.sender] = BasisUsdPrice;
     }
