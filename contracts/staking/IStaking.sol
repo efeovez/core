@@ -31,7 +31,7 @@ interface IStaking is IERC20 {
 
     function setLockPeriod(uint256 newLockPeriod) external;
 
-    function setMaxProviders(uint256 newMaxProviders) external;
+    function setMaxProviders(uint8 newMaxProviders) external;
 
     function setBasis(IERC20 newBasis) external;
 

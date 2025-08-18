@@ -45,7 +45,7 @@ contract StakingState {
 
     mapping(address => mapping(address => uint256)) public claimedDelegatorRewards;
 
-    uint256 public maxProviders = 50;
+    uint8 public maxProviders = 50;
 
     using SafeERC20 for IERC20;
 

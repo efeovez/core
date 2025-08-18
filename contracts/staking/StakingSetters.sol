@@ -19,7 +19,7 @@ contract StakingSetters is StakingState, Governor {
         emit LockPeriodSetted(oldLockPeriod, newLockPeriod);
     }
 
-    function setMaxProviders(uint256 newMaxProviders) public onlyGovernor {
+    function setMaxProviders(uint8 newMaxProviders) public onlyGovernor {
         uint256 oldMaxProviders = maxProviders;
         maxProviders = newMaxProviders;
 
