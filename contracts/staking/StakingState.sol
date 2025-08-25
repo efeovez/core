@@ -25,7 +25,31 @@ contract StakingState {
         uint256 unlockTime;
     }
 
+    struct EpochSnapshot {
+        uint256 epochNumber;
+        uint256 totalRewardPool;
+        uint256 totalPower;
+        mapping(address => uint256) providerPowerSnapshot;
+        mapping(address => mapping(address => uint256)) delegationSnapshot;
+        mapping(address => uint256) stakedSnapshot;
+        bool calculated;
+    }
+
     /* ================= STATE VARIABLES ================= */
+
+    uint256 public startTime = 1785542400;
+
+    uint256 public currentEpoch = 0;
+
+    mapping(uint256 => EpochSnapshot) public epochSnapshots;
+
+    mapping(uint256 => mapping(address => uint256)) public epochProviderRewards;
+
+    mapping(uint256 => mapping(address => mapping(address => uint256))) public epochDelegatorRewards;
+
+    mapping(uint256 => mapping(address => bool)) public providerRewardsClaimed;
+
+    mapping(uint256 => mapping(address => mapping(address => bool))) public delegatorRewardsClaimed;
 
     mapping(address => Provider) public providers;
 
