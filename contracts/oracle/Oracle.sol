@@ -24,6 +24,8 @@ contract Oracle {
         Vote
     }
 
+    event EpochChanged(EpochTypes newEpochType, uint256 timestamp);
+
     EpochTypes public epochType = EpochTypes.PreVote;
 
     constructor(address stakingAddr) {
@@ -31,11 +33,30 @@ contract Oracle {
     }
 
     modifier onlyProvider() {
-        // require(staking.getProvider(msg.sender) != address(0), "basis.getProvider: provider not registered");
+        require(staking.getProvider(msg.sender) != address(0), "basis.getProvider: provider not registered");
         _;
     }
 
-    function priceVote(uint224 basisUsdPrice) public onlyProvider returns(bytes32) {
+    function updateEpoch() public {
+        if (block.timestamp >= targetEpoch) {
+            if (epochType == EpochTypes.PreVote) {
+                epochType = EpochTypes.Vote;
+            } else {
+                epochType = EpochTypes.PreVote;
+            }
+            epochStart = block.timestamp;
+            targetEpoch = block.timestamp + 30;
+            
+            emit EpochChanged(epochType, block.timestamp);
+        }
+    }
+
+    modifier autoUpdateEpoch() {
+        updateEpoch();
+        _;
+    }
+
+    function priceVote(uint224 basisUsdPrice) public onlyProvider autoUpdateEpoch returns(bytes32) {
         require(epochType == EpochTypes.Vote, "basis.priceVote: can only vote epochType is Vote");
 
         if (block.timestamp >= targetEpoch) {
@@ -57,7 +78,7 @@ contract Oracle {
         return hashedPrice;
     }
 
-    function pricePreVote(bytes32 BasisUsdPrice) public onlyProvider {
+    function pricePreVote(bytes32 BasisUsdPrice) public onlyProvider autoUpdateEpoch {
         require(epochType == EpochTypes.PreVote, "basis.priceVote: can only vote epochType is PreVote");
 
         if (block.timestamp >= targetEpoch) {
@@ -75,5 +96,14 @@ contract Oracle {
 
     function getPricePreVote(address provider) public view returns(bytes32) {
         return pricePreVotes[provider];
+    }
+
+    function getCurrentEpochInfo() public view returns(
+        EpochTypes currentType,
+        uint256 timeRemaining,
+        uint256 currentTime) {
+        currentType = epochType;
+        currentTime = block.timestamp;
+        timeRemaining = targetEpoch > block.timestamp ? targetEpoch - block.timestamp : 0;
     }
 }
