@@ -13,17 +13,36 @@ contract Oracle {
 
     mapping(address => bool) public isValidPrice;
 
+    uint256 public startTime = block.timestamp;
+
+    uint256 public epochStart = block.timestamp;
+
+    uint256 public targetEpoch = epochStart + 30;
+
+    enum EpochTypes {
+        PreVote,
+        Vote
+    }
+
+    EpochTypes public epochType = EpochTypes.PreVote;
+
     constructor(address stakingAddr) {
         staking = IStaking(stakingAddr);
     }
 
     modifier onlyProvider() {
-        require(staking.getProvider(msg.sender) != address(0), "basis.getProvider: provider not registered");
+        // require(staking.getProvider(msg.sender) != address(0), "basis.getProvider: provider not registered");
         _;
     }
 
     function priceVote(uint224 basisUsdPrice) public onlyProvider returns(bytes32) {
-        require(block.number % 5 == 4 || block.number % 5 == 5 || block.number % 5 == 6 || block.number % 5 == 9 || block.number % 5 == 0 || block.number % 5 == 1, "basis.priceVote: can only vote every 5 blocks");
+        require(epochType == EpochTypes.Vote, "basis.priceVote: can only vote epochType is Vote");
+
+        if (block.timestamp >= targetEpoch) {
+            epochStart = block.timestamp;
+            targetEpoch = block.timestamp + 30;
+            epochType = EpochTypes.PreVote;
+        }
 
         bytes32 hashedPrice = keccak256(abi.encodePacked(basisUsdPrice));
 
@@ -39,7 +58,13 @@ contract Oracle {
     }
 
     function pricePreVote(bytes32 BasisUsdPrice) public onlyProvider {
-        require(block.number % 5 == 4 || block.number % 5 == 5 || block.number % 5 == 6 || block.number % 5 == 9 || block.number % 5 == 0 || block.number % 5 == 1, "basis.priceVote: can only vote every 5 blocks");
+        require(epochType == EpochTypes.PreVote, "basis.priceVote: can only vote epochType is PreVote");
+
+        if (block.timestamp >= targetEpoch) {
+            epochStart = block.timestamp;
+            targetEpoch = block.timestamp + 30;
+            epochType = EpochTypes.Vote;
+        }
 
         pricePreVotes[msg.sender] = BasisUsdPrice;
     }
