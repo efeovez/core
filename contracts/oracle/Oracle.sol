@@ -56,10 +56,10 @@ contract Oracle {
         _;
     }
 
-    function priceVote(uint224 basisUsdPrice) public onlyProvider autoUpdateEpoch returns(bytes32) {
+    function priceVote(uint224 basisUsdPrice, string memory salt) public onlyProvider autoUpdateEpoch returns(bytes32) {
         require(epochType == EpochTypes.Vote, "basis.priceVote: can only vote epochType is Vote");
 
-        bytes32 hashedPrice = keccak256(abi.encodePacked(basisUsdPrice));
+        bytes32 hashedPrice = keccak256(abi.encodePacked(basisUsdPrice, salt));
 
         if (hashedPrice == getPricePreVote(msg.sender)) {
             isValidPrice[msg.sender] = true;
@@ -72,10 +72,10 @@ contract Oracle {
         return hashedPrice;
     }
 
-    function pricePreVote(bytes32 BasisUsdPrice) public onlyProvider autoUpdateEpoch {
+    function pricePreVote(bytes32 basisUsdPrice) public onlyProvider autoUpdateEpoch {
         require(epochType == EpochTypes.PreVote, "basis.priceVote: can only vote epochType is PreVote");
 
-        pricePreVotes[msg.sender] = BasisUsdPrice;
+        pricePreVotes[msg.sender] = basisUsdPrice;
     }
 
     function getPriceVote(address provider) public view returns(uint224) {
