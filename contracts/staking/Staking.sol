@@ -16,11 +16,55 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
     constructor(address basisAddress, address sbasisAddress) {
         basis = IERC20(basisAddress);
         sbasis = IERC20(sbasisAddress);
+        epochStartTime = block.timestamp;
+        currentEpoch = 0;
     }
 
-    /* ================= FUNCTIONS ================ */
+    /* ================= EPOCH MANAGEMENT ================= */
 
-    function createProvider(string memory description, uint8 commission) public {
+    modifier autoUpdateEpoch() {
+        _updateEpochIfNeeded();
+        _;
+    }
+
+    function _updateEpochIfNeeded() internal {
+        uint256 epochsPassed = (block.timestamp - epochStartTime) / EPOCH_DURATION;
+        
+        if (epochsPassed > 0) {
+            _finalizeEpoch(currentEpoch);
+            
+            currentEpoch += epochsPassed;
+            epochStartTime += (epochsPassed * EPOCH_DURATION);
+            
+            emit EpochAdvanced(currentEpoch, epochStartTime);
+        }
+    }
+
+    function _finalizeEpoch(uint256 epoch) internal {
+        epochTotalReward[epoch] = getTotalReward();
+        
+        uint256 totalPower;
+        for (uint256 i = 0; i < allProviders.length; i++) {
+            address provider = allProviders[i];
+            uint256 power = providers[provider].power;
+            
+            epochProviderPower[epoch][provider] = power;
+            epochProviderStake[epoch][provider] = staked[provider].amount;
+            totalPower += power;
+        }
+        
+        epochTotalPower[epoch] = totalPower;
+        
+        emit EpochFinalized(epoch, totalPower, epochTotalReward[epoch]);
+    }
+
+    function manualUpdateEpoch() external {
+        _updateEpochIfNeeded();
+    }
+
+    /* ================= PROVIDER FUNCTIONS ================ */
+
+    function createProvider(string memory description, uint8 commission) public autoUpdateEpoch {
         require(bytes(description).length < 50, "basis.createProvider: description must be under 50 characters");
         require(commission <= 100, "basis.createProvider: commission must not exceed 100");
         require(providers[msg.sender].providerAddress == address(0), "basis.createProvider: provider already exists");
@@ -51,7 +95,9 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
         emit ProviderEdited(msg.sender, description, commission);
     }
 
-    function delegate(address provider, uint256 amount) public {
+    /* ================= DELEGATION FUNCTIONS ================ */
+
+    function delegate(address provider, uint256 amount) public autoUpdateEpoch {
         require(sbasis.allowance(msg.sender, address(this)) >= amount, "basis.delegate: approved amount is not sufficient");
         require(providers[provider].providerAddress != address(0), "basis.delegate: provider not registered");
         require(amount > 0, "basis.delegate: you cannot delegate zero");
@@ -70,7 +116,7 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
         emit Delegated(msg.sender, provider, amount);
     }
 
-    function undelegate(address provider, uint256 amount) public nonReentrant {
+    function undelegate(address provider, uint256 amount) public nonReentrant autoUpdateEpoch {
         require(delegations[msg.sender][provider].amount >= amount, "basis.undelegate: amount you wish to undelegate must be less than or equal to the amount you have delegated");
         require(providers[provider].providerAddress != address(0), "basis.delegate: provider not registered");
         require(delegations[msg.sender][provider].amount > 0, "basis.undelegate: you do not have an existing delegation");
@@ -89,7 +135,9 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
         emit Undelegated(msg.sender, provider, amount);
     }
 
-    function stake(uint256 amount) public {
+    /* ================= STAKING FUNCTIONS ================ */
+
+    function stake(uint256 amount) public autoUpdateEpoch {
         require(basis.allowance(msg.sender, address(this)) >= amount, "basis.stake: approved amount is not sufficient");
         require(providers[msg.sender].providerAddress != address(0), "basis.stake: provider not registered");
         require(amount > 0, "basis.stake: you cannot stake zero");
@@ -108,7 +156,7 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
         emit ProviderStaked(msg.sender, amount);
     }
 
-    function unstake(uint256 amount) public nonReentrant {
+    function unstake(uint256 amount) public nonReentrant autoUpdateEpoch {
         require(staked[msg.sender].amount >= amount, "basis.unstake: amount you wish to unstake must be less than or equal to the amount you have staked");
         require(providers[msg.sender].providerAddress != address(0), "basis.unstake: provider not registered");
         require(staked[msg.sender].amount > 0, "basis.unstake: you do not have an existing delegation");
@@ -127,86 +175,188 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
         emit ProviderUnstaked(msg.sender, amount);
     }
 
+    /* ================= REWARD CALCULATION ================ */
+
     function getTotalReward() public view returns(uint256) { 
         return basis.balanceOf(address(this)) - totalStakedBasis;
     }
 
-    function calculateProviderReward(address provider) public view returns(uint256) {
-        require(providers[provider].providerAddress != address(0), "basis.calculateProviderReward: provider not registered");
+    function calculateProviderRewardForEpoch(address provider, uint256 epoch) public view returns(uint256) {
+        require(epoch < currentEpoch, "epoch not finalized");
+        require(providers[provider].providerAddress != address(0), "provider not registered");
 
-        uint256 totalPower;
-        for (uint256 i = 0; i < allProviders.length; i++) {
-        totalPower += providers[allProviders[i]].power;
-        }
+        uint256 totalPower = epochTotalPower[epoch];
         if (totalPower == 0) return 0;
 
-        uint256 providerTotalReward = (providers[provider].power * getTotalReward()) / totalPower;
+        uint256 providerPower = epochProviderPower[epoch][provider];
+        if (providerPower == 0) return 0;
 
-        uint256 providerSelfStake = staked[provider].amount;
+        uint256 totalReward = epochTotalReward[epoch];
+        uint256 providerTotalReward = (providerPower * totalReward) / totalPower;
 
-        uint256 providerSelfReward = (providerSelfStake * providerTotalReward) / providers[provider].power;
+        uint256 providerSelfStake = epochProviderStake[epoch][provider];
+        uint256 providerSelfReward = (providerSelfStake * providerTotalReward) / providerPower;
 
-        uint256 commissionReward = ((providerTotalReward - providerSelfReward) * providers[provider].commission) / 100;
+        uint256 commission = providers[provider].commission;
+        uint256 commissionReward = ((providerTotalReward - providerSelfReward) * commission) / 100;
 
         return providerSelfReward + commissionReward;
     }
 
-    function calculateDelegatorReward(address delegator, address provider) public view returns(uint256) {
-        require(providers[provider].providerAddress != address(0), "basis.calculateDelegatorReward: provider not registered");
+    function calculateDelegatorRewardForEpoch(address delegator, address provider, uint256 epoch) public view returns(uint256) {
+        require(epoch < currentEpoch, "epoch not finalized");
+        require(providers[provider].providerAddress != address(0), "provider not registered");
 
-        Delegation memory delegationWrapper = delegations[delegator][provider];
-        if (delegationWrapper.amount == 0) return 0;
-
-        uint256 totalPower;
-        for (uint256 i = 0; i < allProviders.length; i++) {
-            totalPower += providers[allProviders[i]].power;
-        }
+        uint256 totalPower = epochTotalPower[epoch];
         if (totalPower == 0) return 0;
 
-        uint256 providerTotalReward = (providers[provider].power * getTotalReward()) / totalPower;
+        uint256 providerPower = epochProviderPower[epoch][provider];
+        if (providerPower == 0) return 0;
 
-        uint256 providerSelfStake = staked[provider].amount;
+        uint256 delegatorAmount = delegations[delegator][provider].amount;
+        if (delegatorAmount == 0) return 0;
 
-        uint256 providerSelfReward = (providerSelfStake * providerTotalReward) / providers[provider].power;
-        uint256 commissionReward = ((providerTotalReward - providerSelfReward) * providers[provider].commission) / 100;
+        uint256 totalReward = epochTotalReward[epoch];
+        uint256 providerTotalReward = (providerPower * totalReward) / totalPower;
+
+        uint256 providerSelfStake = epochProviderStake[epoch][provider];
+        uint256 providerSelfReward = (providerSelfStake * providerTotalReward) / providerPower;
+
+        uint256 commission = providers[provider].commission;
+        uint256 commissionReward = ((providerTotalReward - providerSelfReward) * commission) / 100;
+
         uint256 rewardAfterCommission = providerTotalReward - providerSelfReward - commissionReward;
+        uint256 delegatedPower = providerPower - providerSelfStake;
 
-        return (delegationWrapper.amount * rewardAfterCommission) / (providers[provider].power - providerSelfStake);
+        if (delegatedPower == 0) return 0;
+
+        return (delegatorAmount * rewardAfterCommission) / delegatedPower;
     }
 
-    function withdrawProviderReward() public nonReentrant {
-        require(providers[msg.sender].providerAddress != address(0), "basis.withdrawProviderReward: provider not registered");
-
-        uint256 totalRewardEarned = calculateProviderReward(msg.sender);
-        uint256 rewardToClaim = totalRewardEarned - claimedProviderRewards[msg.sender];
-        require(rewardToClaim > 0, "no reward");
-
-        claimedProviderRewards[msg.sender] += rewardToClaim;
-        basis.safeTransfer(msg.sender, rewardToClaim);
-
-        emit WithdrawProviderReward(msg.sender, rewardToClaim);
+    function getPendingProviderRewards(address provider) public view returns(uint256) {
+        uint256 totalReward;
+        uint256 lastClaimed = lastClaimedProviderEpoch[provider];
+        
+        for (uint256 epoch = lastClaimed; epoch < currentEpoch; epoch++) {
+            totalReward += calculateProviderRewardForEpoch(provider, epoch);
+        }
+        
+        return totalReward;
     }
 
-    function withdrawDelegatorReward(address provider) public nonReentrant {
+    function getPendingDelegatorRewards(address delegator, address provider) public view returns(uint256) {
+        uint256 totalReward;
+        uint256 lastClaimed = lastClaimedDelegatorEpoch[delegator][provider];
+        
+        for (uint256 epoch = lastClaimed; epoch < currentEpoch; epoch++) {
+            totalReward += calculateDelegatorRewardForEpoch(delegator, provider, epoch);
+        }
+        
+        return totalReward;
+    }
+
+    /* ================= REWARD WITHDRAWAL ================ */
+
+    function withdrawProviderReward() public nonReentrant autoUpdateEpoch {
+        address provider = msg.sender;
+        require(providers[provider].providerAddress != address(0), "basis.withdrawProviderReward: provider not registered");
+
+        uint256 totalReward;
+        uint256 lastClaimed = lastClaimedProviderEpoch[provider];
+        
+        require(currentEpoch > lastClaimed, "no epochs to claim");
+
+        for (uint256 epoch = lastClaimed; epoch < currentEpoch; epoch++) {
+            totalReward += calculateProviderRewardForEpoch(provider, epoch);
+        }
+
+        require(totalReward > 0, "no reward");
+        require(basis.balanceOf(address(this)) >= totalReward + totalStakedBasis, "insufficient contract balance");
+
+        lastClaimedProviderEpoch[provider] = currentEpoch;
+
+        basis.safeTransfer(provider, totalReward);
+
+        emit WithdrawProviderReward(provider, totalReward, lastClaimed, currentEpoch - 1);
+    }
+
+    function withdrawDelegatorReward(address provider) public nonReentrant autoUpdateEpoch {
+        address delegator = msg.sender;
+        
         require(providers[provider].providerAddress != address(0), "basis.withdrawDelegatorReward: provider not registered");
-        require(delegations[msg.sender][provider].amount > 0, "no delegation");
+        require(delegations[delegator][provider].amount > 0, "no delegation");
 
-        uint256 totalRewardEarned = calculateDelegatorReward(msg.sender, provider);
-        uint256 rewardToClaim = totalRewardEarned - claimedDelegatorRewards[msg.sender][provider];
-        require(rewardToClaim > 0, "no reward");
+        uint256 totalReward;
+        uint256 lastClaimed = lastClaimedDelegatorEpoch[delegator][provider];
+        
+        require(currentEpoch > lastClaimed, "no epochs to claim");
 
-        claimedDelegatorRewards[msg.sender][provider] += rewardToClaim;
-        basis.safeTransfer(msg.sender, rewardToClaim);
+        for (uint256 epoch = lastClaimed; epoch < currentEpoch; epoch++) {
+            totalReward += calculateDelegatorRewardForEpoch(delegator, provider, epoch);
+        }
 
-        emit WithdrawDelegatorReward(msg.sender, provider, rewardToClaim);
+        require(totalReward > 0, "no reward");
+        require(basis.balanceOf(address(this)) >= totalReward + totalStakedBasis, "insufficient contract balance");
+
+        lastClaimedDelegatorEpoch[delegator][provider] = currentEpoch;
+
+        basis.safeTransfer(delegator, totalReward);
+
+        emit WithdrawDelegatorReward(delegator, provider, totalReward, lastClaimed, currentEpoch - 1);
     }
 
-    function getProvider(address provider) public view returns(address providerAddress) {
-        Provider storage providerWrapper = providers[provider];
-        return (providerWrapper.providerAddress);
+    /* ================= BATCH WITHDRAWAL ================= */
+
+    function withdrawAllDelegatorRewards(address[] calldata providers) external nonReentrant autoUpdateEpoch {
+        address delegator = msg.sender;
+        uint256 totalReward;
+        
+        for (uint256 i = 0; i < providers.length; i++) {
+            address provider = providers[i];
+            
+            if (delegations[delegator][provider].amount == 0) continue;
+            
+            uint256 lastClaimed = lastClaimedDelegatorEpoch[delegator][provider];
+            if (currentEpoch <= lastClaimed) continue;
+
+            uint256 providerReward;
+            for (uint256 epoch = lastClaimed; epoch < currentEpoch; epoch++) {
+                providerReward += calculateDelegatorRewardForEpoch(delegator, provider, epoch);
+            }
+
+            if (providerReward == 0) continue;
+
+            lastClaimedDelegatorEpoch[delegator][provider] = currentEpoch;
+            totalReward += providerReward;
+            
+            emit WithdrawDelegatorReward(delegator, provider, providerReward, lastClaimed, currentEpoch - 1);
+        }
+        
+        require(totalReward > 0, "no rewards to claim");
+        require(basis.balanceOf(address(this)) >= totalReward + totalStakedBasis, "insufficient contract balance");
+        
+        basis.safeTransfer(delegator, totalReward);
     }
 
-    /* ================= EVENT ================= */
+    /* ================= VIEW FUNCTIONS ================= */
+
+    function getCurrentEpochInfo() external view returns(
+        uint256 epoch,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 timeRemaining
+    ) {
+        epoch = currentEpoch;
+        startTime = epochStartTime;
+        endTime = epochStartTime + EPOCH_DURATION;
+        timeRemaining = block.timestamp < endTime ? endTime - block.timestamp : 0;
+    }
+
+    /* ================= EVENTS ================= */
+
+    event EpochAdvanced(uint256 indexed epoch, uint256 timestamp);
+    
+    event EpochFinalized(uint256 indexed epoch, uint256 totalPower, uint256 totalReward);
 
     event ProviderCreated(address indexed provider, string description, uint8 indexed commission);
 
@@ -220,7 +370,7 @@ contract Staking is StakingState, StakingSetters, ReentrancyGuard {
 
     event ProviderUnstaked(address indexed provider, uint256 indexed amount);
 
-    event WithdrawProviderReward(address indexed provider, uint256 indexed amount);
+    event WithdrawProviderReward(address indexed provider, uint256 amount, uint256 fromEpoch, uint256 toEpoch);
 
-    event WithdrawDelegatorReward(address indexed delegator, address indexed provider, uint256 indexed amount);
+    event WithdrawDelegatorReward(address indexed delegator, address indexed provider, uint256 amount, uint256 fromEpoch, uint256 toEpoch);
 }

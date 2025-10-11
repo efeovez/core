@@ -37,9 +37,7 @@ contract StakingState {
 
     /* ================= STATE VARIABLES ================= */
 
-    uint256 public startTime = 1785542400;
-
-    uint256 public currentEpoch = 0;
+    uint256 public startTime = block.timestamp;
 
     mapping(uint256 => EpochSnapshot) public epochSnapshots;
 
@@ -75,4 +73,25 @@ contract StakingState {
 
     IERC20 public basis;
     IERC20 public sbasis;
+
+    uint256 public cachedTotalPower;
+    uint256 public lastTotalPowerUpdate;
+
+    //
+
+    uint256 public currentEpoch;
+    uint256 public epochStartTime;
+    
+    // Epoch snapshot data
+    mapping(uint256 => uint256) public epochTotalPower;
+    mapping(uint256 => uint256) public epochTotalReward;
+    mapping(uint256 => mapping(address => uint256)) public epochProviderPower;
+    mapping(uint256 => mapping(address => uint256)) public epochProviderStake;
+    mapping(uint256 => mapping(address => mapping(address => uint256))) public epochDelegatorAmount;
+    
+    // Last claimed epoch per user
+    mapping(address => uint256) public lastClaimedProviderEpoch;
+    mapping(address => mapping(address => uint256)) public lastClaimedDelegatorEpoch;
+
+    uint256 public constant EPOCH_DURATION = 3 minutes; // for test
 }
