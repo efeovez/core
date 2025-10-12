@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IERC20} from "../libs/IERC20.sol";
-import {SafeERC20} from "../libs/SafeERC20.sol";
-import {ReentrancyGuard} from "../libs/ReentrancyGuard.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {StakingState} from "./StakingState.sol";
 import {StakingSetters} from "./StakingSetters.sol";
 

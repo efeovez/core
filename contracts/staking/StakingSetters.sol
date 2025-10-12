@@ -3,8 +3,8 @@ pragma solidity ^0.8.0;
 
 import {StakingState} from "./StakingState.sol";
 import {Governor} from "../access/Governor.sol";
-import {IERC20} from "../libs/IERC20.sol";
-import {SafeERC20} from "../libs/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract StakingSetters is StakingState, Governor {
 
