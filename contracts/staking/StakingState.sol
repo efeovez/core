@@ -94,4 +94,9 @@ contract StakingState {
     mapping(address => mapping(address => uint256)) public lastClaimedDelegatorEpoch;
 
     uint256 public constant EPOCH_DURATION = 3 minutes; // for test
+
+    uint256 public totalPower;
+
+    mapping(address => uint256) public providerWithdrawnRewards;
+    mapping(address => mapping(address => uint256)) public delegatorWithdrawnRewards;
 }
