@@ -33,7 +33,7 @@ contract Oracle {
     }
 
     modifier onlyProvider() {
-        require(staking.getProvider(msg.sender) != address(0), "basis.getProvider: provider not registered");
+        require(staking.getProvider(msg.sender) != address(0), "provider not registered");
         _;
     }
 
@@ -57,7 +57,7 @@ contract Oracle {
     }
 
     function priceVote(uint224 basisUsdPrice, string memory salt) public onlyProvider autoUpdateEpoch returns(bytes32) {
-        require(epochType == EpochTypes.Vote, "basis.priceVote: can only vote epochType is Vote");
+        require(epochType == EpochTypes.Vote, "can only vote epochType is Vote");
 
         bytes32 hashedPrice = keccak256(abi.encodePacked(basisUsdPrice, salt));
 
@@ -73,7 +73,7 @@ contract Oracle {
     }
 
     function pricePreVote(bytes32 basisUsdPrice) public onlyProvider autoUpdateEpoch {
-        require(epochType == EpochTypes.PreVote, "basis.priceVote: can only vote epochType is PreVote");
+        require(epochType == EpochTypes.PreVote, "can only vote epochType is PreVote");
 
         pricePreVotes[msg.sender] = basisUsdPrice;
     }

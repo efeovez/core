@@ -13,7 +13,7 @@ interface IBasisToken is IERC20 {
 
     function burnFrom(address from, uint256 amount) external;
 
-    function isGovernor() external view returns (bool);
+    function isOperator() external view returns (bool);
 
-    function getGovernor() external view returns (address);
+    function getOperator() external view returns (address);
 }

@@ -3,26 +3,26 @@ pragma solidity ^0.8.0;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import {Governor} from "../access/Governor.sol";
+import {Operator} from "../access/Operator.sol";
 
-contract BasisUSD is ERC20, ERC20Burnable, Governor {
+contract BasisUSD is ERC20, ERC20Burnable, Operator {
 
     /* ================= CONSTRUCTOR ================= */
 
-    constructor() ERC20("BasisUSD", "USDB") {}
+    constructor() ERC20("USDB", "USDB") {}
 
     /* ================= FUNCTIONS ================= */
 
-    function mint(address account, uint256 amount) public onlyGovernor returns (bool) {
+    function mint(address account, uint256 amount) public onlyOperator returns (bool) {
         _mint(account, amount);
         return true;
     }
 
-    function burn(uint256 amount) public override onlyGovernor {
+    function burn(uint256 amount) public override onlyOperator {
         super.burn(amount);
     }
 
-    function burnFrom(address account, uint256 amount) public override onlyGovernor {
+    function burnFrom(address account, uint256 amount) public override onlyOperator {
         super.burnFrom(account, amount);
     }
 

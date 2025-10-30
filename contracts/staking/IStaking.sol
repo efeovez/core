@@ -7,35 +7,33 @@ interface IStaking is IERC20 {
     
     /* ================= FUNCTIONS ================= */
 
-    function createProvider(string memory description, uint8 commission) external;
+    function createProvider(string calldata description, uint8 commission) external;
 
-    function editProvider(string memory description, uint8 commission) external;
+    function editProvider(string calldata description, uint8 commission) external;
 
     function delegate(address provider, uint256 amount) external;
 
-    function undelegate(address provider, uint256 amount) external;
+    function undelegate(address provider) external;
 
-    function stake(uint256 amount) external;
+    function lastTimeRewardApplicable(address provider) external view returns (uint256);
 
-    function unstake(uint256 amount) external;
+    function rewardPerLpBasis(address provider) external view returns (uint256);
 
-    function getTotalReward() external view returns(uint256);
+    function earned(address delegator, address provider) external view returns (uint256);
 
-    function calculateProviderReward(address provider) external view returns(uint256);
-
-    function calculateDelegatorReward(address delegator, address provider) external view returns(uint256);
-
-    function withdrawProviderReward() external;
+    function getRewardForDuration(address provider) external view returns (uint256);
 
     function withdrawDelegatorReward(address provider) external;
 
-    function setLockPeriod(uint256 newLockPeriod) external;
+    function notifyRewardAmount(uint256 reward, address provider) external;
+
+    function withdrawProviderCommission() external;
+
+    function getProvider(address provider) external view returns(address providerAddress);
+
+    function setLpBasis(IERC20 newLpBasis) external;
 
     function setMaxProviders(uint8 newMaxProviders) external;
 
-    function setBasis(IERC20 newBasis) external;
-
-    function setSbasis(IERC20 newSbasis) external;
-
-    function getProvider(address provider) external view returns(address providerAddress);
+    function setLockPeriod(uint256 newLockPeriod) external;
 }
