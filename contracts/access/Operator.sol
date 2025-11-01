@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-abstract contract Operator {
+contract Operator {
 
     /* ================= STATE VARIABLES ================= */
 
@@ -33,13 +33,13 @@ abstract contract Operator {
     function transferOperator(address newOperator) public onlyOperator {
         require(newOperator != address(0), "zero address given for new operator");
 
-        emit OperatorTransferred(operator, newOperator);
+        emit OperatorTransfered(operator, newOperator);
 
         operator = newOperator;
     }
 
     /* ================= EVENT ================= */
 
-    event OperatorTransferred(address indexed previousOperator, address indexed newOperator);
+    event OperatorTransfered(address indexed previousOperator, address indexed newOperator);
     
 }

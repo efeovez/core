@@ -3,12 +3,15 @@ import { ethers } from "hardhat";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { Staking, Basis } from "../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import { days } from "@nomicfoundation/hardhat-network-helpers/dist/src/helpers/time/duration";
 
 describe("Staking Contract", function () {
   let staking: Staking;
   let basis: Basis;
+  let basis2: Basis;
   let owner: HardhatEthersSigner;
   let operator: HardhatEthersSigner;
+  let governor: HardhatEthersSigner;
   let provider1: HardhatEthersSigner;
   let provider2: HardhatEthersSigner;
   let delegator1: HardhatEthersSigner;
@@ -24,12 +27,12 @@ describe("Staking Contract", function () {
 
     // Deploy Mock basis Token
     const MockERC20Factory = await ethers.getContractFactory("Basis");
-    basis = await MockERC20Factory.deploy();
+    basis = await MockERC20Factory.connect(owner).deploy();
     await basis.waitForDeployment();
 
     // Deploy Staking Contract
     const StakingFactory = await ethers.getContractFactory("Staking");
-    staking = await StakingFactory.deploy(await basis.getAddress());
+    staking = await StakingFactory.connect(owner).deploy(await basis.getAddress());
     await staking.waitForDeployment();
 
     // Set operator
@@ -100,6 +103,21 @@ describe("Staking Contract", function () {
       await expect(staking.connect(provider1).editProvider("Updated", 20))
         .to.emit(staking, "ProviderEdited")
         .withArgs(provider1.address, "Updated", 20);
+    });
+
+    it("Should return the operator address", async function () {
+      await staking.connect(provider1).createProvider("Provider One", 10);
+      const getProviderFunc = await staking.connect(user).getProvider(provider1.address)
+
+      const providerData = await staking.providers(provider1.address);
+      expect(providerData.providerAddr).to.equal(provider1.address);
+    });
+
+    it("Should return the zero address if provider not registered", async function () {
+      const getProviderFunc = await staking.connect(user).getProvider(user.address)
+
+      const providerData = await staking.providers(user.address);
+      expect(providerData.providerAddr).to.equal("0x0000000000000000000000000000000000000000");
     });
   });
 
@@ -309,7 +327,7 @@ describe("Staking Contract", function () {
     it("Should emit RewardAdded event", async function () {
       await expect(staking.connect(operator).notifyRewardAmount(REWARD_AMOUNT, provider1.address))
         .to.emit(staking, "RewardAdded")
-        .withArgs(REWARD_AMOUNT);
+        .withArgs(provider1.address, REWARD_AMOUNT);
     });
 
     it("Should emit WithdrawDelegatorReward event", async function () {
@@ -375,6 +393,76 @@ describe("Staking Contract", function () {
       await expect(staking.connect(provider1).withdrawProviderCommission())
         .to.emit(staking, "WithdrawProviderCommission")
         .withArgs(provider1.address, commission);
+    });
+  });
+
+  describe("Governance Functions", function () {
+    it("Should migrate new lpBasis token address", async function () {
+      const Basis2Factory = await ethers.getContractFactory("Basis");
+      basis2 = await Basis2Factory.connect(owner).deploy();
+      await basis2.waitForDeployment();
+
+      await staking.connect(owner).setLpBasis(await basis2.getAddress())
+      expect(await staking.connect(user).lpBasis()).to.equal(await basis2.getAddress())
+    });
+
+    it("Should emit LpBasisUpdated event", async function () {
+      const oldLpBasis = await staking.connect(user).lpBasis()
+      const Basis2Factory = await ethers.getContractFactory("Basis");
+      basis2 = await Basis2Factory.connect(owner).deploy();
+      await basis2.waitForDeployment();
+
+      const newLpBasis = await basis2.getAddress();
+
+      await expect(staking.connect(owner).setLpBasis(newLpBasis))
+        .to.emit(staking, "LpBasisUpdated")
+        .withArgs(oldLpBasis, newLpBasis);
+    });
+
+    it("Should set new max provider limit", async function () {
+      await staking.connect(owner).setMaxProviders(100)
+
+      expect(await staking.connect(user).maxProviders()).to.equal(100)
+    });
+
+    it("Should emit MaxProvidersUpdated event", async function () {
+      const oldMaxProviders = await staking.connect(user).maxProviders()
+
+      await expect(staking.connect(owner).setMaxProviders(100))
+        .to.emit(staking, "MaxProvidersUpdated")
+        .withArgs(oldMaxProviders, 100);
+    });
+
+    it("Should set new lock period", async function () {
+      await staking.connect(owner).setLockPeriod(86400)
+
+      expect(await staking.connect(user).lockPeriod()).to.equal(86400)
+    });
+
+    it("Should emit LockPeriodUpdated event", async function () {
+      const oldLockPeriod = await staking.connect(user).lockPeriod()
+
+      await expect(staking.connect(owner).setLockPeriod(86400))
+        .to.emit(staking, "LockPeriodUpdated")
+        .withArgs(oldLockPeriod, 86400);
+    });
+
+    it("Should revert if a non-governor tries to migrate lpBasis token address", async function () {
+      await expect(
+        staking.connect(user).setLpBasis("0x0000000000000000000000000000000000000000")
+      ).to.be.revertedWith("msg.sender is not the governor");
+    });
+
+    it("Should revert if a non-governor tries to set max provider limit", async function () {
+      await expect(
+        staking.connect(user).setMaxProviders(1)
+      ).to.be.revertedWith("msg.sender is not the governor");
+    });
+
+    it("Should revert if a non-governor tries to set lock period", async function () {
+      await expect(
+        staking.connect(user).setLockPeriod(1)
+      ).to.be.revertedWith("msg.sender is not the governor");
     });
   });
 

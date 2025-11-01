@@ -56,12 +56,10 @@ contract Staking is StakingState, StakingGovernor, ReentrancyGuard, Operator {
 
     /* ================= DELEGATION FUNCTIONS ================ */
 
-    function delegate(address provider, uint256 amount) public updateReward(msg.sender, provider) {
+    function delegate(address provider, uint256 amount) public updateReward(msg.sender, provider) nonReentrant {
         require(lpBasis.allowance(msg.sender, address(this)) >= amount, "approved amount is not sufficient");
         require(providers[provider].providerAddr != address(0), "provider not registered");
         require(amount > 0, "you cannot delegate zero");
-
-        lpBasis.safeTransferFrom(msg.sender, address(this), amount);
 
         Provider storage providerWrapper = providers[provider];
         providerWrapper.power += amount;
@@ -71,6 +69,8 @@ contract Staking is StakingState, StakingGovernor, ReentrancyGuard, Operator {
         delegations[msg.sender][provider].share += amount;
 
         totalShare += amount;
+
+        lpBasis.safeTransferFrom(msg.sender, address(this), amount);
 
         emit Delegated(msg.sender, provider, amount);
     }
@@ -156,7 +156,7 @@ contract Staking is StakingState, StakingGovernor, ReentrancyGuard, Operator {
 
         providers[provider].lastUpdateTime = block.timestamp;
         providers[provider].periodFinish = block.timestamp + (lockPeriod);
-        emit RewardAdded(reward);
+        emit RewardAdded(provider, reward);
     }
 
     function withdrawProviderCommission() public nonReentrant {
@@ -200,7 +200,7 @@ contract Staking is StakingState, StakingGovernor, ReentrancyGuard, Operator {
 
     event WithdrawDelegatorReward(address indexed delegator, address indexed provider, uint256 amount);
 
-    event RewardAdded(uint256 reward);
+    event RewardAdded(address indexed provider, uint256 reward);
 
     event WithdrawProviderCommission(address indexed provider, uint256 amount);
 }
