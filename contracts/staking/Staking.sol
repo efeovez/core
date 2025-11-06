@@ -143,6 +143,7 @@ contract Staking is StakingState, StakingGovernor, ReentrancyGuard, Operator {
     }
 
     function notifyRewardAmount(uint256 reward, address provider) external onlyOperator updateReward(address(0), provider) {
+        require(providers[provider].power > 0, "provider power must be greater than 0");
         if (block.timestamp >= providers[provider].periodFinish) {
             providers[provider].rewardRate = reward / (lockPeriod);
         } else {
@@ -172,8 +173,7 @@ contract Staking is StakingState, StakingGovernor, ReentrancyGuard, Operator {
     }
 
     function getProvider(address provider) public view returns(address providerAddress) {
-        Provider storage providerWrapper = providers[provider];
-        return (providerWrapper.providerAddr);
+        return providers[provider].providerAddr;
     }
 
     /* ================= MODIFIER ================ */
