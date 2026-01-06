@@ -102,7 +102,7 @@ describe("Staking Contract", function () {
       await staking.connect(provider1).createProvider("Provider One", 10);
       await expect(staking.connect(provider1).editProvider("Updated", 20))
         .to.emit(staking, "ProviderEdited")
-        .withArgs(provider1.address, "Updated", 20);
+        .withArgs(provider1.address, "Updated", 20, time.latest);
     });
 
     it("Should return the operator address", async function () {
@@ -189,7 +189,7 @@ describe("Staking Contract", function () {
       await basis.connect(delegator1).approve(await staking.getAddress(), STAKE_AMOUNT);
       await expect(staking.connect(delegator1).delegate(provider1.address, STAKE_AMOUNT))
         .to.emit(staking, "Delegated")
-        .withArgs(delegator1.address, provider1.address, STAKE_AMOUNT);
+        .withArgs(delegator1.address, provider1.address, STAKE_AMOUNT, time.latest);
     });
   });
 

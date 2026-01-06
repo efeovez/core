@@ -36,4 +36,6 @@ interface IStaking is IERC20 {
     function setMaxProviders(uint8 newMaxProviders) external;
 
     function setLockPeriod(uint256 newLockPeriod) external;
+
+    function setCommissionUpdateLock(uint256 newCommissionUpdateLock) external;
 }

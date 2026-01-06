@@ -33,7 +33,10 @@ contract Staking is StakingState, StakingGovernor, ReentrancyGuard, Operator {
             rewardRate: 0,
             commissionRewards: 0,
             periodFinish: 0,
-            lastUpdateTime: 0
+            lastUpdateTime: 0,
+            oldCommission: 0,
+            newCommissionUpdateTime: 0,
+            commissionUpdateLock: 0
         });
 
         allProviders.push(msg.sender);
@@ -48,10 +51,17 @@ contract Staking is StakingState, StakingGovernor, ReentrancyGuard, Operator {
 
         Provider storage providerWrapper = providers[msg.sender];
 
-        providerWrapper.description = description;
+        if(providers[msg.sender].commission != commission) {
+            require(block.timestamp >= providers[msg.sender].commissionUpdateLock, "Commission is locked");
+        providerWrapper.oldCommission = providerWrapper.commission;
+        providerWrapper.newCommissionUpdateTime = block.timestamp;
+        providerWrapper.commissionUpdateLock = block.timestamp + commissionUpdateLock;
         providerWrapper.commission = commission;
+        }
 
-        emit ProviderEdited(msg.sender, description, commission);
+        providerWrapper.description = description;
+
+        emit ProviderEdited(msg.sender, description, commission, providerWrapper.oldCommission, providerWrapper.newCommissionUpdateTime);
     }
 
     /* ================= DELEGATION FUNCTIONS ================ */
@@ -67,12 +77,13 @@ contract Staking is StakingState, StakingGovernor, ReentrancyGuard, Operator {
         delegations[msg.sender][provider].unlockTime = block.timestamp + lockPeriod;
         delegations[msg.sender][provider].provider = provider;
         delegations[msg.sender][provider].share += amount;
+        delegations[msg.sender][provider].delegationTime = block.timestamp;
 
         totalShare += amount;
 
         lpBasis.safeTransferFrom(msg.sender, address(this), amount);
 
-        emit Delegated(msg.sender, provider, amount);
+        emit Delegated(msg.sender, provider, amount, delegations[msg.sender][provider].delegationTime);
     }
 
     function undelegate(address provider) public updateReward(msg.sender, provider) nonReentrant {
@@ -126,7 +137,15 @@ contract Staking is StakingState, StakingGovernor, ReentrancyGuard, Operator {
         require(delegations[msg.sender][provider].share > 0, "no delegation");
 
         uint256 grossReward = delegations[msg.sender][provider].rewards;
-        uint256 providerCommission = (grossReward * providers[provider].commission) / 100;
+        uint256 providerCommissionRaw;
+
+        if(delegations[msg.sender][provider].delegationTime >= providers[provider].newCommissionUpdateTime) {
+            providerCommissionRaw = providers[provider].commission;
+        } else {
+            providerCommissionRaw = providers[provider].oldCommission;
+        }
+
+        uint256 providerCommission = (grossReward * providerCommissionRaw) / 100;
         uint256 netReward = grossReward - providerCommission;
 
         delegations[msg.sender][provider].rewards = 0;
@@ -192,9 +211,9 @@ contract Staking is StakingState, StakingGovernor, ReentrancyGuard, Operator {
 
     event ProviderCreated(address indexed provider, string description, uint8 commission);
 
-    event ProviderEdited(address indexed provider, string description, uint8 commission);
+    event ProviderEdited(address indexed provider, string description, uint8 commission, uint8 oldCommission, uint256 newCommissionUpdateTime);
 
-    event Delegated(address indexed delegator, address indexed provider, uint256 amount);
+    event Delegated(address indexed delegator, address indexed provider, uint256 amount, uint256 delegationTime);
 
     event Undelegated(address indexed delegator, address indexed provider, uint256 amount);
 

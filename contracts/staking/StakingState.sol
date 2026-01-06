@@ -22,6 +22,9 @@ contract StakingState {
         uint256 commissionRewards;
         uint256 periodFinish;
         uint256 lastUpdateTime;
+        uint8 oldCommission;
+        uint256 newCommissionUpdateTime;
+        uint256 commissionUpdateLock;
     }
 
     address[] public allProviders;
@@ -36,6 +39,7 @@ contract StakingState {
         address provider;
         uint256 rewards;
         uint256 userRewardPerLpBasisPaid;
+        uint256 delegationTime;
     }
 
     mapping(address => mapping(address => Delegation)) public delegations;
@@ -43,4 +47,6 @@ contract StakingState {
     uint256 public lockPeriod = 21 days;
 
     uint256 public totalShare;
+
+    uint256 public commissionUpdateLock = 63 days;
 }

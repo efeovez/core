@@ -34,9 +34,19 @@ contract StakingGovernor is StakingState, Governor {
         emit LockPeriodUpdated(oldLockPeriod, lockPeriod);
     }
 
+    function setCommissionUpdateLock(uint256 newCommissionUpdateLock) public onlyGovernor {
+        uint256 oldCommissionUpdateLock = commissionUpdateLock;
+
+        commissionUpdateLock = newCommissionUpdateLock;
+
+        emit CommissionUpdateLockUpdated(oldCommissionUpdateLock, commissionUpdateLock);
+    }
+
     event LpBasisUpdated(IERC20 indexed oldLpBasis, IERC20 indexed newLpBasis);
 
     event MaxProvidersUpdated(uint8 oldMaxProviders, uint8 newMaxProviders);
 
     event LockPeriodUpdated(uint256 oldLockPeriod, uint256 newLockPeriod);
+
+    event CommissionUpdateLockUpdated(uint256 oldCommissionUpdateLock, uint256 commissionUpdateLock);
 }
