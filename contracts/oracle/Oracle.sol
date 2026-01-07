@@ -4,32 +4,28 @@ pragma solidity ^0.8.0;
 import {IStaking} from "../staking/IStaking.sol";
 
 contract Oracle {
-
     IStaking public staking;
 
     mapping(address => uint224) public priceVotes;
-
     mapping(address => bytes32) public pricePreVotes;
-
+    
     mapping(address => bool) public isValidPrice;
 
-    uint256 public startTime = block.timestamp;
-
-    uint256 public epochStart = block.timestamp;
-
-    uint256 public targetEpoch = epochStart + 30;
+    uint256 public epochDuration = 30;
+    uint256 public startTime;
 
     enum EpochTypes {
         PreVote,
         Vote
     }
 
-    event EpochChanged(EpochTypes newEpochType, uint256 timestamp);
+    event EpochChanged(uint256 indexed epochId, EpochTypes epochType);
+    event PreVoteSubmitted(address indexed provider, bytes32 hash);
+    event VoteRevealed(address indexed provider, uint224 price, bool isValid);
 
-    EpochTypes public epochType = EpochTypes.PreVote;
-
-    constructor(address stakingAddr) {
+    constructor(address stakingAddr, uint256 startTime_) {
         staking = IStaking(stakingAddr);
+        startTime = startTime_;
     }
 
     modifier onlyProvider() {
@@ -37,61 +33,54 @@ contract Oracle {
         _;
     }
 
-    function updateEpoch() public {
-        if (block.timestamp >= targetEpoch) {
-            if (epochType == EpochTypes.PreVote) {
-                epochType = EpochTypes.Vote;
-            } else {
-                epochType = EpochTypes.PreVote;
-            }
-            epochStart = block.timestamp;
-            targetEpoch = block.timestamp + 30;
-            
-            emit EpochChanged(epochType, block.timestamp);
+    function getCurrentEpochType() public view returns (EpochTypes) {
+        uint256 timePassed = block.timestamp - startTime;
+        uint256 epochIndex = timePassed / epochDuration;
+        
+        if (epochIndex % 2 == 0) {
+            return EpochTypes.PreVote;
+        } else {
+            return EpochTypes.Vote;
         }
     }
 
-    modifier autoUpdateEpoch() {
-        updateEpoch();
+    modifier onlyEpoch(EpochTypes requiredType) {
+        require(getCurrentEpochType() == requiredType, "wrong epoch type");
         _;
     }
 
-    function priceVote(uint224 basisUsdPrice, string memory salt) public onlyProvider autoUpdateEpoch returns(bytes32) {
-        require(epochType == EpochTypes.Vote, "can only vote epochType is Vote");
+    // Commit Aşaması
+    function pricePreVote(bytes32 hash) public onlyProvider onlyEpoch(EpochTypes.PreVote) {
+        pricePreVotes[msg.sender] = hash;
+        isValidPrice[msg.sender] = false; 
+        
+        emit PreVoteSubmitted(msg.sender, hash);
+    }
 
-        bytes32 hashedPrice = keccak256(abi.encodePacked(basisUsdPrice, salt));
-
-        if (hashedPrice == getPricePreVote(msg.sender)) {
+    function priceVote(uint224 basisUsdPrice, bytes32 salt) public onlyProvider onlyEpoch(EpochTypes.Vote) {
+        bytes32 hashedPrice = keccak256(abi.encodePacked(basisUsdPrice, salt));        
+        bool isMatch = (hashedPrice == pricePreVotes[msg.sender]);
+        
+        if (isMatch) {
             isValidPrice[msg.sender] = true;
+            priceVotes[msg.sender] = basisUsdPrice;
         } else {
             isValidPrice[msg.sender] = false;
+            delete priceVotes[msg.sender]; 
         }
-        
-        priceVotes[msg.sender] = basisUsdPrice;
 
-        return hashedPrice;
+        emit VoteRevealed(msg.sender, basisUsdPrice, isMatch);
     }
 
-    function pricePreVote(bytes32 basisUsdPrice) public onlyProvider autoUpdateEpoch {
-        require(epochType == EpochTypes.PreVote, "can only vote epochType is PreVote");
-
-        pricePreVotes[msg.sender] = basisUsdPrice;
-    }
-
-    function getPriceVote(address provider) public view returns(uint224) {
-        return priceVotes[provider];
-    }
-
-    function getPricePreVote(address provider) public view returns(bytes32) {
-        return pricePreVotes[provider];
-    }
-
-    function getCurrentEpochInfo() public view returns(
-        EpochTypes currentType,
-        uint256 timeRemaining,
-        uint256 currentTime) {
-        currentType = epochType;
+    function getCurrentEpochInfo() public view returns(EpochTypes currentType, uint256 timeRemaining, uint256 currentTime, uint256 currentEpochId) {
         currentTime = block.timestamp;
-        timeRemaining = targetEpoch > block.timestamp ? targetEpoch - block.timestamp : 0;
+        uint256 timePassed = currentTime - startTime;
+        uint256 epochIndex = timePassed / epochDuration;
+        
+        currentType = (epochIndex % 2 == 0) ? EpochTypes.PreVote : EpochTypes.Vote;
+        
+        uint256 nextEpochStart = startTime + ((epochIndex + 1) * epochDuration);
+        timeRemaining = nextEpochStart - currentTime;
+        currentEpochId = epochIndex;
     }
 }
